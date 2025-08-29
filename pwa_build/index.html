@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="style.css" />
+    <title>PWA Cámara GPS</title>
+  </head>
+  <body>
+    <script type="text/javascript">
+      navigator.serviceWorker.register('service-worker.js').then(
+        function (registration) {
+          console.log(
+            'ServiceWorker registration successful with scope: ',
+            registration.scope,
+          );
+        },
+        function (err) {
+          console.log('ServiceWorker registration failed: ', err);
+        },
+      );
+    </script>
+    <h1>Cámara + GPS - POC 0.1</h1>
+    <button id="take-photo">Tomar Foto</button>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display: none"></canvas>
+
+    <h2>Consulta API local</h2>
+    <button id="api-btn">Consultar API</button>
+    <pre id="api-result"></pre>
+
+    <h2>Consulta API REMOTA</h2>
+    <button id="api-btn2">Consultar API 2</button>
+    <pre id="api-result2"></pre>
+
+    <div id="gallery"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

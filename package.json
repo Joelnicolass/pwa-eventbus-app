@@ -7,13 +7,19 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "sync-pwa": "cp -r pwa_build/* android/app/src/main/assets/www/ && cp -r pwa_build/* ios/pocorbith/www/",
+    "build-and-sync": "npm run sync-pwa && react-native run-android",
+    "start-clean-cache": "react-native start --reset-cache"
   },
   "dependencies": {
+    "@dr.pogodin/react-native-fs": "^2.35.1",
+    "@dr.pogodin/react-native-static-server": "^0.24.1",
+    "@react-native/new-app-screen": "0.81.1",
     "react": "19.1.0",
     "react-native": "0.81.1",
-    "@react-native/new-app-screen": "0.81.1",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native-safe-area-context": "^5.6.1",
+    "react-native-webview": "^13.16.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
