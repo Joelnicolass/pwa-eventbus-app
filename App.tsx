@@ -17,6 +17,7 @@ import { useEventBus } from './src/event_bus/use_event_bus';
 import { EventTypes } from './src/event_bus/types';
 import { useNativeHttpRequest } from './src/event_bus/use_native_http_request';
 import { useCustomEvents } from './src/event_bus/use_custom_events';
+import { useNativeStorage } from './src/event_bus/use_native_storage';
 
 export default function App() {
   const [url, setUrl] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export default function App() {
   // Inicializar el EventBus
   const eventBus = useEventBus(webViewRef);
   useNativeHttpRequest(eventBus);
+  useNativeStorage(eventBus);
   useCustomEvents(eventBus);
 
   useEffect(() => {
@@ -136,72 +138,9 @@ export default function App() {
       },
     );
 
-    const unsubscribeCameraPermission = eventBus.subscribe(
-      EventTypes.CAMERA_PERMISSION_REQUEST,
-      async payload => {
-        console.log('PWA solicita permiso de cámara:', payload);
-
-        if (Platform.OS === 'android') {
-          try {
-            const granted = await PermissionsAndroid.request(
-              PermissionsAndroid.PERMISSIONS.CAMERA,
-            );
-            return {
-              granted: granted === PermissionsAndroid.RESULTS.GRANTED,
-              canAskAgain:
-                granted !== PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN,
-            };
-          } catch (error) {
-            return { granted: false, canAskAgain: false };
-          }
-        }
-
-        // Para iOS asumir que está permitido (maneja los permisos automáticamente)
-        return { granted: true, canAskAgain: true };
-      },
-    );
-
-    const unsubscribeLocationPermission = eventBus.subscribe(
-      EventTypes.LOCATION_PERMISSION_REQUEST,
-      async payload => {
-        console.log('PWA solicita permiso de ubicación:', payload);
-
-        if (Platform.OS === 'android') {
-          try {
-            const granted = await PermissionsAndroid.request(
-              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-            );
-            return {
-              granted: granted === PermissionsAndroid.RESULTS.GRANTED,
-              canAskAgain:
-                granted !== PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN,
-            };
-          } catch (error) {
-            return { granted: false, canAskAgain: false };
-          }
-        }
-
-        return { granted: true, canAskAgain: true };
-      },
-    );
-
-    // === SUSCRIPCIONES A CUSTOM EVENTS ===
-
-    // Suscribirse a custom events desde la PWA
-    const unsubscribePWACustomEvent = eventBus.subscribe(
-      EventTypes.PWA_CUSTOM_EVENT,
-      async payload => {
-        console.log('Evento personalizado desde PWA:', payload);
-        return { received: true, timestamp: Date.now() };
-      },
-    );
-
     // Cleanup de suscripciones
     return () => {
       unsubscribeInitialization();
-      unsubscribeCameraPermission();
-      unsubscribeLocationPermission();
-      unsubscribePWACustomEvent();
     };
   }, [eventBus]);
 

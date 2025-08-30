@@ -569,6 +569,12 @@ class EventTypes {
   static STORAGE_PERMISSION_REQUEST = 'storage_permission_request';
   static CONTACTS_PERMISSION_REQUEST = 'contacts_permission_request';
 
+  // === CACHE ===
+  static SET_IN_LOCAL_STORAGE = 'set_in_local_storage';
+  static GET_FROM_LOCAL_STORAGE = 'get_from_local_storage';
+  static DELETE_FROM_LOCAL_STORAGE = 'delete_from_local_storage';
+  static CLEAR_LOCAL_STORAGE = 'clear_local_storage';
+
   // === CAMERA AND MULTIMEDIA ===
   static TAKE_PHOTO = 'take_photo';
   static RECORD_VIDEO = 'record_video';

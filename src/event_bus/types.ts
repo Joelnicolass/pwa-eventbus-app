@@ -50,6 +50,12 @@ export enum EventTypes {
   LIST_FILES = 'list_files',
   LIST_FILES_RESPONSE = 'list_files_response',
 
+  // CACHE
+  SET_IN_LOCAL_STORAGE = 'set_in_local_storage',
+  GET_FROM_LOCAL_STORAGE = 'get_from_local_storage',
+  DELETE_FROM_LOCAL_STORAGE = 'delete_from_local_storage',
+  CLEAR_LOCAL_STORAGE = 'clear_local_storage',
+
   // === NOTIFICACIONES PUSH ===
   REGISTER_PUSH_NOTIFICATIONS = 'register_push_notifications',
   REGISTER_PUSH_NOTIFICATIONS_RESPONSE = 'register_push_notifications_response',
@@ -342,6 +348,25 @@ export interface IncomingEventPayloads {
     responseType?: 'json' | 'text' | 'blob' | 'arraybuffer';
   };
 
+  // === CACHE ===
+  [EventTypes.SET_IN_LOCAL_STORAGE]: {
+    key: string;
+    value: string;
+  };
+
+  [EventTypes.GET_FROM_LOCAL_STORAGE]: {
+    key: string;
+    requestId: string;
+  };
+
+  [EventTypes.DELETE_FROM_LOCAL_STORAGE]: {
+    key: string;
+  };
+
+  [EventTypes.CLEAR_LOCAL_STORAGE]: {
+    // No requiere parámetros
+  };
+
   // === PERMISOS ===
   [EventTypes.CAMERA_PERMISSION_REQUEST]: {
     reason?: string;
@@ -410,6 +435,29 @@ export interface OutgoingEventResponses {
   [EventTypes.HTTP_REQUEST]: {
     status: number;
     data: any;
+  };
+
+  // === CACHE ===
+  [EventTypes.SET_IN_LOCAL_STORAGE]: {
+    success: boolean;
+    error?: string;
+  };
+
+  [EventTypes.GET_FROM_LOCAL_STORAGE]: {
+    requestId: string;
+    value: string | null;
+    success: boolean;
+    error?: string;
+  };
+
+  [EventTypes.DELETE_FROM_LOCAL_STORAGE]: {
+    success: boolean;
+    error?: string;
+  };
+
+  [EventTypes.CLEAR_LOCAL_STORAGE]: {
+    success: boolean;
+    error?: string;
   };
 
   // === PERMISOS ===

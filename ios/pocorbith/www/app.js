@@ -369,3 +369,65 @@ window.addEventListener('load', () => {
       });
   }, 1000);
 });
+
+// INPUT Y EVENTO PARA GUARDAR EN STORAGE
+// Los elementos ya están definidos en el HTML, solo necesitamos referenciarlos
+const storageInput = document.getElementById('storage-input');
+const saveStorageBtn = document.getElementById('save-storage-btn');
+const storageResult = document.getElementById('storage-result');
+
+// Manejar clic para guardar en storage
+saveStorageBtn.addEventListener('click', async () => {
+  const text = storageInput.value.trim();
+  if (!text) {
+    alert('Por favor ingresa un texto para guardar.');
+    return;
+  }
+
+  log('Guardando en storage:', text);
+
+  try {
+    const response = await eventBus.emit(EVENT.SET_IN_LOCAL_STORAGE, {
+      key: 'pwa_saved_text',
+      value: text,
+    });
+
+    log('Respuesta del guardado en storage', response);
+    storageResult.textContent = `Guardado exitoso:\n${JSON.stringify(
+      response,
+      null,
+      2,
+    )}`;
+
+    // Limpiar input
+    storageInput.value = '';
+  } catch (error) {
+    log('Error guardando en storage', error);
+    storageResult.textContent = `Error: ${error.message}`;
+  }
+});
+
+// Al cargar, intentar leer valor guardado
+window.addEventListener('load', async () => {
+  try {
+    const response = await eventBus.emit(EVENT.GET_FROM_LOCAL_STORAGE, {
+      key: 'pwa_saved_text',
+      requestId: 'initial_load',
+    });
+
+    log('Valor leído del storage al cargar', response);
+
+    if (response.value) {
+      storageResult.textContent = `Valor en storage:\n${JSON.stringify(
+        response,
+        null,
+        2,
+      )}`;
+    } else {
+      storageResult.textContent = 'No hay valor guardado en storage.';
+    }
+  } catch (error) {
+    log('Error leyendo desde storage al cargar', error);
+    storageResult.textContent = `Error: ${error.message}`;
+  }
+});
