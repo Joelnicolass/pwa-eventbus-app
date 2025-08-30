@@ -1,5 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { EventPayloads, EventResponses } from './types';
+import {
+  OutgoingEventPayloads,
+  IncomingEventResponses,
+  IncomingEventPayloads,
+  OutgoingEventResponses,
+} from './types';
 
 /**
  * Represents a message sent through the event bus.
@@ -215,17 +220,19 @@ class EventBus {
   /**
    * Emits an event to the WebView and returns a promise that resolves with the response.
    *
-   * @template T - The event type, constrained to keys present in both `EventPayloads` and `EventResponses`.
+   * @template T - The event type, constrained to keys present in both `OutgoingEventPayloads` and `IncomingEventResponses`.
    * @param eventType - The type of event to emit.
    * @param payload - The payload associated with the event.
    * @returns A promise that resolves with the response for the emitted event.
    *
    * @throws {Error} If the response is not received within 30 seconds, the promise is rejected with a timeout error.
    */
-  public emit<T extends keyof EventPayloads & keyof EventResponses>(
+  public emit<
+    T extends keyof OutgoingEventPayloads & keyof IncomingEventResponses,
+  >(
     eventType: T,
-    payload: EventPayloads[T],
-  ): Promise<EventResponses[T]> {
+    payload: OutgoingEventPayloads[T],
+  ): Promise<IncomingEventResponses[T]> {
     return new Promise((resolve, reject) => {
       const messageId = this.generateMessageId();
 
@@ -255,14 +262,18 @@ class EventBus {
   /**
    * Subscribes to a specific event type, registering a callback to be invoked when the event is emitted.
    *
-   * @template T - The event type, constrained to keys of both `EventPayloads` and `EventResponses`.
+   * @template T - The event type, constrained to keys of both `IncomingEventPayloads` and `OutgoingEventResponses`.
    * @param eventType - The type of event to subscribe to.
    * @param callback - An asynchronous function that handles the event payload and returns a response.
    * @returns A cleanup function that unsubscribes the callback from the event type.
    */
-  public subscribe<T extends keyof EventPayloads & keyof EventResponses>(
+  public subscribe<
+    T extends keyof IncomingEventPayloads & keyof OutgoingEventResponses,
+  >(
     eventType: T,
-    callback: (payload: EventPayloads[T]) => Promise<EventResponses[T]>,
+    callback: (
+      payload: IncomingEventPayloads[T],
+    ) => Promise<OutgoingEventResponses[T]>,
   ): () => void {
     const eventTypeStr = eventType as string;
 
@@ -284,13 +295,17 @@ class EventBus {
    * Removes the provided callback from the set of subscribers for the given event type.
    * If there are no more subscribers for the event type after removal, the event type is deleted from the internal subscribers map.
    *
-   * @typeParam T - The event type, constrained to keys present in both EventPayloads and EventResponses.
+   * @typeParam T - The event type, constrained to keys present in both IncomingEventPayloads and OutgoingEventResponses.
    * @param eventType - The type of event to unsubscribe from.
    * @param callback - The callback function to remove, which handles the event payload and returns a promise of the event response.
    */
-  public unsubscribe<T extends keyof EventPayloads & keyof EventResponses>(
+  public unsubscribe<
+    T extends keyof IncomingEventPayloads & keyof OutgoingEventResponses,
+  >(
     eventType: T,
-    callback: (payload: EventPayloads[T]) => Promise<EventResponses[T]>,
+    callback: (
+      payload: IncomingEventPayloads[T],
+    ) => Promise<OutgoingEventResponses[T]>,
   ): void {
     const eventTypeStr = eventType as string;
     const subscribers = this.subscribers.get(eventTypeStr);
@@ -345,3 +360,5 @@ export const useEventBus = (webViewRef?: any) => {
 
   return eventBusRef.current;
 };
+
+export type { EventBus };

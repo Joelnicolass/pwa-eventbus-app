@@ -1,6 +1,5 @@
 /**
- * Tipos de eventos para comunicación bidireccional PWA <-> React Native
- * Arquitectura limpia - Capa de constantes
+ * Tipos de eventos para comunicación bidireccional PWA <-> NATIVE
  */
 
 export enum EventTypes {
@@ -9,8 +8,8 @@ export enum EventTypes {
   NATIVE_READY = 'native_ready',
 
   // === HTTP REQUESTS ===
-  HTTP_REQUEST = 'http_request',
   HTTP_RESPONSE = 'http_response',
+  HTTP_REQUEST = 'http_request',
 
   // === PERMISOS ===
   CAMERA_PERMISSION_REQUEST = 'camera_permission_request',
@@ -160,9 +159,9 @@ export enum EventTypes {
 }
 
 /**
- * Tipos de payload para diferentes eventos
+ * Tipos de payload para eventos que EMITES (lo que envías cuando haces emit())
  */
-export interface EventPayloads {
+export interface OutgoingEventPayloads {
   // === EVENTOS DE INICIALIZACIÓN ===
   [EventTypes.PWA_READY]: {
     timestamp: number;
@@ -195,14 +194,6 @@ export interface EventPayloads {
 
   [EventTypes.CONTACTS_PERMISSION_REQUEST]: {
     reason?: string;
-  };
-
-  [EventTypes.HTTP_REQUEST]: {
-    url: string;
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-    headers?: Record<string, string>;
-    body?: any;
-    timeout?: number;
   };
 
   [EventTypes.TAKE_PHOTO]: {
@@ -245,35 +236,21 @@ export interface EventPayloads {
     url?: string;
   };
 
-  // Agregar más tipos según sea necesario
-
   // CUSTOM EVENTS
   [EventTypes.CUSTOM_EVENT]: {
     [key: string]: any;
   };
 
   [EventTypes.PWA_CUSTOM_EVENT]: {
-    message: string;
-    timestamp: number;
-    randomNumber: number;
-    coords: {
-      lat: number;
-      lon: number;
-    };
-    browserInfo: {
-      userAgent: string;
-      language: string;
-      platform: string;
-      cookieEnabled: boolean;
-      onLine: boolean;
-    };
+    [key: string]: any;
+    test: string;
   };
 }
 
 /**
- * Tipos de respuesta para diferentes eventos
+ * Tipos de respuesta que RECIBES después de emitir un evento (lo que esperas como respuesta)
  */
-export interface EventResponses {
+export interface IncomingEventResponses {
   // === EVENTOS DE INICIALIZACIÓN ===
   [EventTypes.PWA_READY]: {
     status: string;
@@ -311,25 +288,14 @@ export interface EventResponses {
     canAskAgain?: boolean;
   };
 
-  [EventTypes.HTTP_RESPONSE]: {
-    status: number;
-    data: any;
-    headers?: Record<string, string>;
-  };
-
-  [EventTypes.CAMERA_PERMISSION_RESPONSE]: {
-    granted: boolean;
-    canAskAgain?: boolean;
-  };
-
-  [EventTypes.TAKE_PHOTO_RESPONSE]: {
+  [EventTypes.TAKE_PHOTO]: {
     uri: string;
     width: number;
     height: number;
     fileSize?: number;
   };
 
-  [EventTypes.GET_LOCATION_RESPONSE]: {
+  [EventTypes.GET_LOCATION]: {
     latitude: number;
     longitude: number;
     accuracy?: number;
@@ -339,13 +305,78 @@ export interface EventResponses {
     timestamp: number;
   };
 
-  [EventTypes.ERROR]: {
-    code: string;
-    message: string;
-    details?: any;
+  // CUSTOM EVENTS
+  [EventTypes.CUSTOM_EVENT]: {
+    [key: string]: any;
   };
 
-  // Agregar más tipos según sea necesario
+  [EventTypes.PWA_CUSTOM_EVENT]: {
+    [key: string]: any;
+  };
+}
+
+/**
+ * Tipos de payload para eventos que RECIBES (lo que recibes cuando alguien emite hacia ti)
+ */
+export interface IncomingEventPayloads {
+  // === EVENTOS DE INICIALIZACIÓN ===
+  [EventTypes.PWA_READY]: {
+    timestamp: number;
+    version?: string;
+  };
+
+  [EventTypes.NATIVE_READY]: {
+    platform: string;
+    version: string | number;
+    timestamp: number;
+  };
+
+  // === HTTP REQUESTS ===
+
+  [EventTypes.HTTP_REQUEST]: {
+    url: string;
+    headers?: Record<string, string>;
+    timeout?: number;
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    body?: any;
+    responseType?: 'json' | 'text' | 'blob' | 'arraybuffer';
+  };
+
+  // === PERMISOS ===
+  [EventTypes.CAMERA_PERMISSION_REQUEST]: {
+    reason?: string;
+  };
+
+  [EventTypes.LOCATION_PERMISSION_REQUEST]: {
+    reason?: string;
+    enableHighAccuracy?: boolean;
+  };
+
+  [EventTypes.MICROPHONE_PERMISSION_REQUEST]: {
+    reason?: string;
+  };
+
+  [EventTypes.STORAGE_PERMISSION_REQUEST]: {
+    reason?: string;
+  };
+
+  [EventTypes.CONTACTS_PERMISSION_REQUEST]: {
+    reason?: string;
+  };
+
+  [EventTypes.TAKE_PHOTO]: {
+    quality?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+    allowEditing?: boolean;
+    cameraType?: 'front' | 'back';
+  };
+
+  [EventTypes.GET_LOCATION]: {
+    enableHighAccuracy?: boolean;
+    timeout?: number;
+    maximumAge?: number;
+  };
 
   // CUSTOM EVENTS
   [EventTypes.CUSTOM_EVENT]: {
@@ -353,13 +384,82 @@ export interface EventResponses {
   };
 
   [EventTypes.PWA_CUSTOM_EVENT]: {
-    message: string;
+    [key: string]: any;
+    test: string;
+  };
+}
+
+/**
+ * Tipos de respuesta que ENVÍAS cuando respondes a un evento recibido (lo que debes retornar)
+ */
+export interface OutgoingEventResponses {
+  // === EVENTOS DE INICIALIZACIÓN ===
+  [EventTypes.PWA_READY]: {
+    status: string;
     timestamp: number;
-    nativeInfo: {
-      platform: string;
-      version: string | number;
-      deviceId?: string;
-    };
-    processedData?: any;
+  };
+
+  [EventTypes.NATIVE_READY]: {
+    status: string;
+    timestamp: number;
+  };
+
+  // === HTTP REQUESTS ===
+
+  [EventTypes.HTTP_REQUEST]: {
+    status: number;
+    data: any;
+  };
+
+  // === PERMISOS ===
+  [EventTypes.CAMERA_PERMISSION_REQUEST]: {
+    granted: boolean;
+    canAskAgain?: boolean;
+  };
+
+  [EventTypes.LOCATION_PERMISSION_REQUEST]: {
+    granted: boolean;
+    canAskAgain?: boolean;
+  };
+
+  [EventTypes.MICROPHONE_PERMISSION_REQUEST]: {
+    granted: boolean;
+    canAskAgain?: boolean;
+  };
+
+  [EventTypes.STORAGE_PERMISSION_REQUEST]: {
+    granted: boolean;
+    canAskAgain?: boolean;
+  };
+
+  [EventTypes.CONTACTS_PERMISSION_REQUEST]: {
+    granted: boolean;
+    canAskAgain?: boolean;
+  };
+
+  [EventTypes.TAKE_PHOTO]: {
+    uri: string;
+    width: number;
+    height: number;
+    fileSize?: number;
+  };
+
+  [EventTypes.GET_LOCATION]: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    altitude?: number;
+    speed?: number;
+    heading?: number;
+    timestamp: number;
+  };
+
+  // CUSTOM EVENTS
+  [EventTypes.CUSTOM_EVENT]: {
+    [key: string]: any;
+  };
+
+  [EventTypes.PWA_CUSTOM_EVENT]: {
+    [key: string]: any;
   };
 }

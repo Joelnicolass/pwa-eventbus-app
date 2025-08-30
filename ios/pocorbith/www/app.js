@@ -267,6 +267,7 @@ document.getElementById('api-btn2').addEventListener('click', () => {
 
 // Inicializar EventBus usando la clase del módulo
 const eventBus = new window.PWAEventBus();
+const EVENT = window.EventTypes;
 
 // === IMPLEMENTACIÓN DE CUSTOM EVENTS ===
 
@@ -303,16 +304,18 @@ eventBus.subscribe('custom_event', async payload => {
   )}`;
 
   // Responder con otro custom event
-  return {
-    message: 'Custom event procesado exitosamente por PWA',
-    timestamp: Date.now(),
-    originalData: payload,
-    pwaInfo: {
-      userAgent: navigator.userAgent,
-      language: navigator.language,
-      platform: navigator.platform,
+
+  const res = await eventBus.emit(EVENT.HTTP_REQUEST, {
+    method: 'GET',
+    url: 'https://jsonplaceholder.typicode.com/users/1',
+    headers: {
+      'Content-Type': 'application/json',
     },
-  };
+  });
+
+  log('Respuesta del HTTP request recibido desde React Native', res);
+
+  return res;
 });
 
 // Enviar custom event al hacer clic en el botón

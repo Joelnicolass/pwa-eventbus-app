@@ -15,6 +15,7 @@ import Server, {
 import * as RNFS from '@dr.pogodin/react-native-fs';
 import { useEventBus } from './src/event_bus/use_event_bus';
 import { EventTypes } from './src/event_bus/types';
+import { useNativeHttpRequest } from './src/event_bus/use_native_http_request';
 
 export default function App() {
   const [url, setUrl] = useState<string | null>(null);
@@ -24,6 +25,7 @@ export default function App() {
 
   // Inicializar el EventBus
   const eventBus = useEventBus(webViewRef);
+  useNativeHttpRequest(eventBus);
 
   useEffect(() => {
     async function requestPermissions() {
@@ -187,30 +189,8 @@ export default function App() {
     const unsubscribePWACustomEvent = eventBus.subscribe(
       EventTypes.PWA_CUSTOM_EVENT,
       async payload => {
-        console.log('Custom event recibido desde PWA:', payload);
-
-        // Procesar datos del custom event
-        const processedData = {
-          receivedAt: Date.now(),
-          coordsDistance: Math.sqrt(
-            Math.pow(payload.coords.lat + 34.6037, 2) +
-              Math.pow(payload.coords.lon + 58.3816, 2),
-          ),
-          browserScore: payload.browserInfo.onLine ? 100 : 50,
-          randomProcessed: payload.randomNumber * 2,
-        };
-
-        // Responder con información de React Native
-        return {
-          message: 'Custom event procesado exitosamente por React Native',
-          timestamp: Date.now(),
-          nativeInfo: {
-            platform: Platform.OS,
-            version: Platform.Version,
-            deviceId: 'rn-device-123', // En una app real, usar un ID real del dispositivo
-          },
-          processedData,
-        };
+        console.log('Evento personalizado desde PWA:', payload);
+        return { received: true, timestamp: Date.now() };
       },
     );
 
@@ -282,7 +262,7 @@ export default function App() {
           onPress={async () => {
             try {
               const response = await eventBus?.emit(EventTypes.CUSTOM_EVENT, {
-                test: 'data',
+                test: 'Mensaje de prueba desde React Native',
               });
               console.log(
                 'Respuesta de la PWA al evento personalizado:',

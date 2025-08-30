@@ -304,5 +304,10 @@ class PWAEventBus {
   }
 }
 
+class EventTypes {
+  static HTTP_REQUEST = 'http_request';
+}
+
 // Exponer la clase globalmente
 window.PWAEventBus = PWAEventBus;
+window.EventTypes = EventTypes;
