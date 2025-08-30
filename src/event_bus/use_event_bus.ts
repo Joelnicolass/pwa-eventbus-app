@@ -28,36 +28,26 @@ type PendingRequest = { resolve: Function; reject: Function };
 type WebViewRef = { current: any } | null;
 
 /**
- * Manages event-based communication between a WebView and a Progressive Web App (PWA).
+ * Manages event-based communication between a WebView and the host application,
+ * supporting request/response messaging, event subscriptions, and asynchronous handling.
  *
- * The `EventBus` class provides a mechanism for emitting events to a WebView, subscribing to event types,
- * handling incoming messages, and managing asynchronous request/response cycles. It supports both sending
- * events to the WebView and receiving events from it, with built-in support for awaiting responses and
- * handling timeouts.
+ * The `EventBus` class enables:
+ * - Emitting events to the WebView and awaiting responses.
+ * - Subscribing to specific event types with asynchronous callbacks.
+ * - Handling incoming messages, distinguishing between new events and responses.
+ * - Managing pending requests with automatic timeout handling.
+ * - Cleaning up all subscribers and pending requests to prevent memory leaks.
  *
- * ### Features
- * - Emit events to the WebView and await responses.
- * - Subscribe to specific event types with asynchronous handlers.
- * - Unsubscribe handlers and clean up resources.
- * - Handles incoming messages, distinguishing between new events and responses.
- * - Manages pending requests and resolves them upon receiving responses.
- * - Provides a cleanup method to prevent memory leaks.
- *
- * ### Usage
- * 1. Instantiate with WebView reference.
- * 2. Use `emit` to send events and await responses.
- * 3. Use `subscribe` to listen for specific event types.
- * 4. Bind `handleMessage` to the WebView's `onMessage` prop.
- * 5. Call `destroy` when the event bus is no longer needed.
- *
- * @template EventPayloads - An interface mapping event types to their payload types.
- * @template EventResponses - An interface mapping event types to their response types.
+ * @template IncomingEventPayloads - Mapping of event types to payloads received from the WebView.
+ * @template OutgoingEventPayloads - Mapping of event types to payloads sent to the WebView.
+ * @template IncomingEventResponses - Mapping of event types to responses expected from the WebView.
+ * @template OutgoingEventResponses - Mapping of event types to responses sent to the WebView.
  *
  * @remarks
- * - All event handlers are asynchronous and may return a promise.
- * - Responses are matched to requests using unique message IDs.
- * - If a response is not received within 30 seconds, the request promise is rejected.
- * - Designed for use in React Native or similar environments with WebView communication.
+ * - Designed for use with React Native's WebView, but adaptable to other environments.
+ * - All event and response types are strongly typed for type safety.
+ * - Handles serialization and deserialization of messages automatically.
+ * - Provides cleanup via the `destroy` method.
  */
 class EventBus {
   private webViewRef: WebViewRef = null;
