@@ -16,6 +16,7 @@ import * as RNFS from '@dr.pogodin/react-native-fs';
 import { useEventBus } from './src/event_bus/use_event_bus';
 import { EventTypes } from './src/event_bus/types';
 import { useNativeHttpRequest } from './src/event_bus/use_native_http_request';
+import { useCustomEvents } from './src/event_bus/use_custom_events';
 
 export default function App() {
   const [url, setUrl] = useState<string | null>(null);
@@ -26,6 +27,7 @@ export default function App() {
   // Inicializar el EventBus
   const eventBus = useEventBus(webViewRef);
   useNativeHttpRequest(eventBus);
+  useCustomEvents(eventBus);
 
   useEffect(() => {
     async function requestPermissions() {

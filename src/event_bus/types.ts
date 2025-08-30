@@ -391,6 +391,7 @@ export interface IncomingEventPayloads {
 
 /**
  * Tipos de respuesta que ENVÍAS cuando respondes a un evento recibido (lo que debes retornar)
+ *
  */
 export interface OutgoingEventResponses {
   // === EVENTOS DE INICIALIZACIÓN ===
