@@ -264,3 +264,315 @@ document.getElementById('api-btn2').addEventListener('click', () => {
         'ErrOR al consultar la API local';
     });
 });
+
+// === CLASE EVENTBUS PARA PWA ===
+class PWAEventBus {
+  constructor() {
+    this.subscribers = new Map();
+    this.pendingRequests = new Map();
+    this.messageIdCounter = 0;
+
+    // Múltiples listeners para diferentes entornos
+    this.setupMessageListeners();
+
+    log('PWAEventBus inicializado');
+  }
+
+  setupMessageListeners() {
+    // Listener para React Native WebView
+    if (window.ReactNativeWebView) {
+      // Para React Native, usar el objeto global
+      window.addEventListener('message', this.handleMessage.bind(this));
+      log('Listener configurado para ReactNativeWebView');
+    } else {
+      // Fallback para desarrollo/testing
+      window.addEventListener('message', this.handleMessage.bind(this));
+      log('Listener configurado para entorno de desarrollo');
+    }
+
+    // Listener adicional para document
+    document.addEventListener('message', this.handleMessage.bind(this));
+
+    // Listener global para capturar todos los mensajes
+    window.onmessage = this.handleMessage.bind(this);
+
+    // Debug: Mostrar todos los eventos de mensaje
+    const originalAddEventListener = window.addEventListener;
+    const self = this;
+    window.addEventListener = function (type, listener, options) {
+      if (type === 'message') {
+        log('Nuevo listener de mensaje registrado');
+      }
+      return originalAddEventListener.call(this, type, listener, options);
+    };
+  }
+
+  handleMessage(event) {
+    try {
+      log('Evento de mensaje recibido:', event);
+
+      let messageData;
+
+      // Intentar múltiples formas de extraer los datos
+      if (event.data) {
+        messageData = event.data;
+      } else if (event.detail) {
+        messageData = event.detail;
+      } else {
+        log('No se encontraron datos en el evento');
+        return;
+      }
+
+      // Parsear el mensaje
+      let message;
+      if (typeof messageData === 'string') {
+        try {
+          message = JSON.parse(messageData);
+        } catch (parseError) {
+          log('Error parsing JSON:', parseError);
+          return;
+        }
+      } else if (typeof messageData === 'object') {
+        message = messageData;
+      } else {
+        log('Tipo de datos no reconocido:', typeof messageData);
+        return;
+      }
+
+      log('Mensaje procesado desde React Native:', message);
+
+      if (message.isResponse && message.responseToMessageId) {
+        this.handleResponse(message);
+      } else {
+        this.handleIncomingEvent(message);
+      }
+    } catch (error) {
+      log('Error general en handleMessage:', error);
+    }
+  }
+
+  handleResponse(message) {
+    const pendingRequest = this.pendingRequests.get(
+      message.responseToMessageId,
+    );
+    if (pendingRequest) {
+      pendingRequest.resolve(message.payload);
+      this.pendingRequests.delete(message.responseToMessageId);
+      log('Respuesta procesada para messageId:', message.responseToMessageId);
+    }
+  }
+
+  async handleIncomingEvent(message) {
+    const subscribers = this.subscribers.get(message.type);
+    if (subscribers && subscribers.size > 0) {
+      try {
+        log(`Procesando evento: ${message.type}`, message.payload);
+
+        const promises = Array.from(subscribers).map(callback =>
+          callback(message.payload),
+        );
+
+        const responses = await Promise.all(promises);
+        const response = responses[0]; // Tomar la primera respuesta
+
+        if (message.messageId) {
+          this.sendResponse(message.messageId, response);
+        }
+      } catch (error) {
+        log(`Error handling event ${message.type}:`, error);
+
+        if (message.messageId) {
+          this.sendResponse(message.messageId, {
+            code: 'HANDLER_ERROR',
+            message: error.message,
+            details: error,
+          });
+        }
+      }
+    } else {
+      log(`No hay suscriptores para el evento: ${message.type}`);
+    }
+  }
+
+  sendResponse(messageId, payload) {
+    const responseMessage = {
+      type: 'response',
+      payload,
+      isResponse: true,
+      responseToMessageId: messageId,
+    };
+
+    this.postMessageToReactNative(responseMessage);
+    log('Respuesta enviada para messageId:', messageId);
+  }
+
+  generateMessageId() {
+    return `pwa_${Date.now()}_${++this.messageIdCounter}`;
+  }
+
+  postMessageToReactNative(message) {
+    try {
+      const messageString = JSON.stringify(message);
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(messageString);
+        log('Mensaje enviado a React Native via ReactNativeWebView');
+      } else {
+        // Fallback para development/testing
+        window.parent.postMessage(messageString, '*');
+        log('Mensaje enviado via window.parent.postMessage');
+      }
+    } catch (error) {
+      log('Error sending message to React Native', error);
+    }
+  }
+
+  emit(eventType, payload) {
+    return new Promise((resolve, reject) => {
+      const messageId = this.generateMessageId();
+
+      this.pendingRequests.set(messageId, { resolve, reject });
+
+      const message = {
+        type: eventType,
+        payload,
+        messageId,
+      };
+
+      this.postMessageToReactNative(message);
+      log(`Evento emitido: ${eventType}`, payload);
+
+      setTimeout(() => {
+        if (this.pendingRequests.has(messageId)) {
+          this.pendingRequests.delete(messageId);
+          reject(new Error(`Timeout waiting for response to ${eventType}`));
+        }
+      }, 30000);
+    });
+  }
+
+  subscribe(eventType, callback) {
+    if (!this.subscribers.has(eventType)) {
+      this.subscribers.set(eventType, new Set());
+    }
+
+    this.subscribers.get(eventType).add(callback);
+    log(`Suscrito al evento: ${eventType}`);
+
+    return () => {
+      this.unsubscribe(eventType, callback);
+    };
+  }
+
+  unsubscribe(eventType, callback) {
+    const subscribers = this.subscribers.get(eventType);
+    if (subscribers) {
+      subscribers.delete(callback);
+      if (subscribers.size === 0) {
+        this.subscribers.delete(eventType);
+      }
+    }
+    log(`Desuscrito del evento: ${eventType}`);
+  }
+}
+
+// Inicializar EventBus
+const eventBus = new PWAEventBus();
+
+// === IMPLEMENTACIÓN DE CUSTOM EVENTS ===
+
+// Botón para enviar custom event a React Native
+const customEventBtn = document.createElement('button');
+customEventBtn.textContent = 'Enviar Custom Event';
+customEventBtn.id = 'custom-event-btn';
+document.body.appendChild(customEventBtn);
+
+// Área para mostrar respuestas de custom events
+const customEventResult = document.createElement('pre');
+customEventResult.id = 'custom-event-result';
+customEventResult.style.cssText = `
+  background: #e8f4fd;
+  border: 1px solid #007acc;
+  padding: 10px;
+  margin: 10px auto;
+  width: 90%;
+  max-width: 500px;
+  white-space: pre-wrap;
+  text-align: left;
+  font-family: monospace;
+  color: #333;
+`;
+document.body.appendChild(customEventResult);
+
+// Suscribirse a custom events de React Native
+eventBus.subscribe('custom_event', async payload => {
+  log('Custom event recibido desde React Native', payload);
+  customEventResult.textContent = `Evento recibido desde React Native:\n${JSON.stringify(
+    payload,
+    null,
+    2,
+  )}`;
+
+  // Responder con otro custom event
+  return {
+    message: 'Custom event procesado exitosamente por PWA',
+    timestamp: Date.now(),
+    originalData: payload,
+    pwaInfo: {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      platform: navigator.platform,
+    },
+  };
+});
+
+// Enviar custom event al hacer clic en el botón
+customEventBtn.addEventListener('click', async () => {
+  log('Enviando custom event a React Native');
+
+  try {
+    const response = await eventBus.emit('pwa_custom_event', {
+      message: 'Hola desde PWA!',
+      timestamp: Date.now(),
+      randomNumber: Math.floor(Math.random() * 1000),
+      coords: await getCurrentPosition(),
+      browserInfo: {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+      },
+    });
+
+    log('Respuesta del custom event recibida', response);
+    customEventResult.textContent = `Respuesta de React Native:\n${JSON.stringify(
+      response,
+      null,
+      2,
+    )}`;
+  } catch (error) {
+    log('Error enviando custom event', error);
+    customEventResult.textContent = `Error: ${error.message}`;
+  }
+});
+
+// Notificar que la PWA está lista
+window.addEventListener('load', () => {
+  // ...existing code...
+
+  // Notificar a React Native que PWA está lista
+  setTimeout(() => {
+    eventBus
+      .emit('pwa_ready', {
+        timestamp: Date.now(),
+        version: '1.0.0',
+        features: ['camera', 'geolocation', 'indexeddb', 'custom-events'],
+      })
+      .catch(error => {
+        log(
+          'React Native aún no está listo para recibir eventos:',
+          error.message,
+        );
+      });
+  }, 1000);
+});

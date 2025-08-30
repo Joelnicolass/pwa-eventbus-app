@@ -1,17 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Alert, PermissionsAndroid, Platform } from 'react-native';
+import {
+  StyleSheet,
+  Alert,
+  PermissionsAndroid,
+  Platform,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import Server, {
   extractBundledAssets,
 } from '@dr.pogodin/react-native-static-server';
 import * as RNFS from '@dr.pogodin/react-native-fs';
+import { useEventBus } from './src/event_bus/use_event_bus';
+import { EventTypes } from './src/event_bus/types';
 
 export default function App() {
   const [url, setUrl] = useState<string | null>(null);
   const [isServerReady, setIsServerReady] = useState(false);
   const refServer = useRef<Server | null>(null);
   const webViewRef = useRef<WebView>(null);
+
+  // Inicializar el EventBus
+  const eventBus = useEventBus(webViewRef);
 
   useEffect(() => {
     async function requestPermissions() {
@@ -106,6 +118,132 @@ export default function App() {
     };
   }, []);
 
+  // Configurar suscripciones a eventos de la PWA
+  useEffect(() => {
+    if (!eventBus) return;
+
+    // Ejemplo: Suscribirse a eventos de la PWA
+    const unsubscribeInitialization = eventBus.subscribe(
+      EventTypes.PWA_READY,
+      async payload => {
+        console.log('PWA está lista:', payload);
+        // Responder que React Native también está listo
+        return { status: 'native_ready', timestamp: Date.now() };
+      },
+    );
+
+    const unsubscribeCameraPermission = eventBus.subscribe(
+      EventTypes.CAMERA_PERMISSION_REQUEST,
+      async payload => {
+        console.log('PWA solicita permiso de cámara:', payload);
+
+        if (Platform.OS === 'android') {
+          try {
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.CAMERA,
+            );
+            return {
+              granted: granted === PermissionsAndroid.RESULTS.GRANTED,
+              canAskAgain:
+                granted !== PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN,
+            };
+          } catch (error) {
+            return { granted: false, canAskAgain: false };
+          }
+        }
+
+        // Para iOS asumir que está permitido (maneja los permisos automáticamente)
+        return { granted: true, canAskAgain: true };
+      },
+    );
+
+    const unsubscribeLocationPermission = eventBus.subscribe(
+      EventTypes.LOCATION_PERMISSION_REQUEST,
+      async payload => {
+        console.log('PWA solicita permiso de ubicación:', payload);
+
+        if (Platform.OS === 'android') {
+          try {
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            );
+            return {
+              granted: granted === PermissionsAndroid.RESULTS.GRANTED,
+              canAskAgain:
+                granted !== PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN,
+            };
+          } catch (error) {
+            return { granted: false, canAskAgain: false };
+          }
+        }
+
+        return { granted: true, canAskAgain: true };
+      },
+    );
+
+    // === SUSCRIPCIONES A CUSTOM EVENTS ===
+
+    // Suscribirse a custom events desde la PWA
+    const unsubscribePWACustomEvent = eventBus.subscribe(
+      EventTypes.PWA_CUSTOM_EVENT,
+      async payload => {
+        console.log('Custom event recibido desde PWA:', payload);
+
+        // Procesar datos del custom event
+        const processedData = {
+          receivedAt: Date.now(),
+          coordsDistance: Math.sqrt(
+            Math.pow(payload.coords.lat + 34.6037, 2) +
+              Math.pow(payload.coords.lon + 58.3816, 2),
+          ),
+          browserScore: payload.browserInfo.onLine ? 100 : 50,
+          randomProcessed: payload.randomNumber * 2,
+        };
+
+        // Responder con información de React Native
+        return {
+          message: 'Custom event procesado exitosamente por React Native',
+          timestamp: Date.now(),
+          nativeInfo: {
+            platform: Platform.OS,
+            version: Platform.Version,
+            deviceId: 'rn-device-123', // En una app real, usar un ID real del dispositivo
+          },
+          processedData,
+        };
+      },
+    );
+
+    // Cleanup de suscripciones
+    return () => {
+      unsubscribeInitialization();
+      unsubscribeCameraPermission();
+      unsubscribeLocationPermission();
+      unsubscribePWACustomEvent();
+    };
+  }, [eventBus]);
+
+  // Notificar a la PWA cuando React Native está listo
+  useEffect(() => {
+    if (eventBus && isServerReady) {
+      // Pequeño delay para asegurar que la PWA esté cargada
+      setTimeout(() => {
+        eventBus
+          .emit(EventTypes.NATIVE_READY, {
+            platform: Platform.OS,
+            version: Platform.Version,
+            timestamp: Date.now(),
+          })
+          .catch(error => {
+            console.log(
+              'PWA aún no está lista para recibir eventos:',
+              error.message,
+            );
+          });
+      }, 2000);
+    }
+  }, [eventBus, isServerReady]);
+
   const handleWebViewError = (syntheticEvent: any) => {
     const { nativeEvent } = syntheticEvent;
     console.error('Error en WebView:', nativeEvent);
@@ -115,6 +253,9 @@ export default function App() {
   const handleWebViewMessage = (event: any) => {
     const message = event.nativeEvent.data;
     console.log('Mensaje desde WebView:', message);
+
+    // ¡IMPORTANTE! Conectar el EventBus con los mensajes del WebView
+    eventBus?.handleMessage(event);
   };
 
   const handleNavigationStateChange = (navState: any) => {
@@ -136,6 +277,26 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={async () => {
+            try {
+              const response = await eventBus?.emit(EventTypes.CUSTOM_EVENT, {
+                test: 'data',
+              });
+              console.log(
+                'Respuesta de la PWA al evento personalizado:',
+                response,
+              );
+            } catch (error) {
+              console.error('Error enviando evento personalizado:', error);
+            }
+          }}
+        >
+          <Text style={styles.testButtonText}>
+            Enviar mensaje de prueba a la PWA
+          </Text>
+        </TouchableOpacity>
         <WebView
           ref={webViewRef}
           source={{ uri: url }}
@@ -171,4 +332,15 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   webView: { flex: 1 },
+  testButton: {
+    backgroundColor: '#007bff',
+    padding: 10,
+    borderRadius: 5,
+    margin: 10,
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+  },
 });
