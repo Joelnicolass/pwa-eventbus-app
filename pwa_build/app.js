@@ -376,6 +376,130 @@ const storageInput = document.getElementById('storage-input');
 const saveStorageBtn = document.getElementById('save-storage-btn');
 const storageResult = document.getElementById('storage-result');
 
+// === FUNCIONALIDAD DE GEOLOCALIZACIÓN ===
+// Referencias a los elementos de la UI de geolocalización
+const getLocationBtn = document.getElementById('get-location-btn');
+const startTrackingBtn = document.getElementById('start-tracking-btn');
+const stopTrackingBtn = document.getElementById('stop-tracking-btn');
+const locationData = document.getElementById('location-data');
+const trackingData = document.getElementById('tracking-data');
+
+let isTracking = false;
+
+// Función para formatear datos de ubicación
+function formatLocationData(locationResponse) {
+  if (!locationResponse.success) {
+    return `Error: ${locationResponse.error || 'Error desconocido'}`;
+  }
+
+  return `Ubicación obtenida exitosamente:
+Latitud: ${locationResponse.latitude}°
+Longitud: ${locationResponse.longitude}°
+Precisión: ${
+    locationResponse.accuracy
+      ? locationResponse.accuracy.toFixed(2) + ' metros'
+      : 'N/A'
+  }
+Altitud: ${
+    locationResponse.altitude
+      ? locationResponse.altitude.toFixed(2) + ' metros'
+      : 'N/A'
+  }
+Velocidad: ${
+    locationResponse.speed ? locationResponse.speed.toFixed(2) + ' m/s' : 'N/A'
+  }
+Dirección: ${
+    locationResponse.heading ? locationResponse.heading.toFixed(2) + '°' : 'N/A'
+  }
+Timestamp: ${new Date(locationResponse.timestamp).toLocaleString()}`;
+}
+
+// Obtener ubicación actual
+getLocationBtn.addEventListener('click', async () => {
+  log('Solicitando ubicación actual...');
+  locationData.textContent = 'Obteniendo ubicación...';
+
+  try {
+    const response = await eventBus.emit(EVENT.GET_LOCATION, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 300000,
+    });
+
+    log('Respuesta de geolocalización recibida', response);
+    locationData.textContent = formatLocationData(response);
+  } catch (error) {
+    log('Error obteniendo ubicación', error);
+    locationData.textContent = `Error: ${error.message}`;
+  }
+});
+
+// Iniciar seguimiento de ubicación
+startTrackingBtn.addEventListener('click', async () => {
+  log('Iniciando seguimiento de ubicación...');
+  trackingData.textContent = 'Iniciando seguimiento...';
+
+  try {
+    const response = await eventBus.emit(EVENT.START_LOCATION_TRACKING, {
+      enableHighAccuracy: true,
+      distanceFilter: 10, // 10 metros
+      interval: 5000, // 5 segundos
+    });
+
+    log('Respuesta de inicio de seguimiento', response);
+
+    if (response.success) {
+      isTracking = true;
+      startTrackingBtn.disabled = true;
+      stopTrackingBtn.disabled = false;
+      trackingData.textContent =
+        'Seguimiento activo - Esperando actualizaciones de ubicación...';
+    } else {
+      trackingData.textContent = `Error iniciando seguimiento: ${response.error}`;
+    }
+  } catch (error) {
+    log('Error iniciando seguimiento', error);
+    trackingData.textContent = `Error: ${error.message}`;
+  }
+});
+
+// Detener seguimiento de ubicación
+stopTrackingBtn.addEventListener('click', async () => {
+  log('Deteniendo seguimiento de ubicación...');
+  trackingData.textContent = 'Deteniendo seguimiento...';
+
+  try {
+    const response = await eventBus.emit(EVENT.STOP_LOCATION_TRACKING, {});
+
+    log('Respuesta de detener seguimiento', response);
+
+    if (response.success) {
+      isTracking = false;
+      startTrackingBtn.disabled = false;
+      stopTrackingBtn.disabled = true;
+      trackingData.textContent = 'Seguimiento detenido.';
+    } else {
+      trackingData.textContent = `Error deteniendo seguimiento: ${response.error}`;
+    }
+  } catch (error) {
+    log('Error deteniendo seguimiento', error);
+    trackingData.textContent = `Error: ${error.message}`;
+  }
+});
+
+// Suscribirse a actualizaciones de ubicación desde React Native
+eventBus.subscribe('location_update', async payload => {
+  log('Actualización de ubicación recibida', payload);
+
+  if (isTracking) {
+    trackingData.textContent = `Seguimiento activo - Última actualización:
+${formatLocationData(payload)}`;
+  }
+
+  // No necesitamos devolver una respuesta para este evento
+  return { received: true };
+});
+
 // Manejar clic para guardar en storage
 saveStorageBtn.addEventListener('click', async () => {
   const text = storageInput.value.trim();

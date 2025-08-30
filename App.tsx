@@ -18,6 +18,7 @@ import { EventTypes } from './src/event_bus/types';
 import { useNativeHttpRequest } from './src/event_bus/use_native_http_request';
 import { useCustomEvents } from './src/event_bus/use_custom_events';
 import { useNativeStorage } from './src/event_bus/use_native_storage';
+import { useNativeLocation } from './src/event_bus/use_native_location';
 
 export default function App() {
   const [url, setUrl] = useState<string | null>(null);
@@ -30,6 +31,7 @@ export default function App() {
   useNativeHttpRequest(eventBus);
   useNativeStorage(eventBus);
   useCustomEvents(eventBus);
+  useNativeLocation(eventBus);
 
   useEffect(() => {
     async function requestPermissions() {

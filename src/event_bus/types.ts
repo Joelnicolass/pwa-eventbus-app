@@ -216,6 +216,28 @@ export interface OutgoingEventPayloads {
     maximumAge?: number;
   };
 
+  [EventTypes.START_LOCATION_TRACKING]: {
+    enableHighAccuracy?: boolean;
+    distanceFilter?: number;
+    interval?: number;
+  };
+
+  [EventTypes.STOP_LOCATION_TRACKING]: {
+    // No requiere parámetros
+  };
+
+  [EventTypes.LOCATION_UPDATE]: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    altitude?: number;
+    speed?: number;
+    heading?: number;
+    timestamp: number;
+    success: boolean;
+    error?: string;
+  };
+
   [EventTypes.SAVE_FILE]: {
     filename: string;
     data: string | ArrayBuffer;
@@ -311,6 +333,10 @@ export interface IncomingEventResponses {
     timestamp: number;
   };
 
+  [EventTypes.LOCATION_UPDATE]: {
+    received: boolean;
+  };
+
   // CUSTOM EVENTS
   [EventTypes.CUSTOM_EVENT]: {
     [key: string]: any;
@@ -401,6 +427,16 @@ export interface IncomingEventPayloads {
     enableHighAccuracy?: boolean;
     timeout?: number;
     maximumAge?: number;
+  };
+
+  [EventTypes.START_LOCATION_TRACKING]: {
+    enableHighAccuracy?: boolean;
+    distanceFilter?: number;
+    interval?: number;
+  };
+
+  [EventTypes.STOP_LOCATION_TRACKING]: {
+    // No requiere parámetros
   };
 
   // CUSTOM EVENTS
@@ -501,6 +537,22 @@ export interface OutgoingEventResponses {
     speed?: number;
     heading?: number;
     timestamp: number;
+    success: boolean;
+    error?: string;
+  };
+
+  [EventTypes.START_LOCATION_TRACKING]: {
+    success: boolean;
+    error?: string;
+  };
+
+  [EventTypes.STOP_LOCATION_TRACKING]: {
+    success: boolean;
+    error?: string;
+  };
+
+  [EventTypes.LOCATION_UPDATE]: {
+    received: boolean;
   };
 
   // CUSTOM EVENTS

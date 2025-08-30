@@ -45,6 +45,25 @@
       <pre id="storage-result">No hay valor guardado en storage.</pre>
     </div>
 
+    <h2>Geolocalización</h2>
+    <div id="location-section">
+      <div id="location-buttons">
+        <button id="get-location-btn">Obtener Ubicación Actual</button>
+        <button id="start-tracking-btn">Iniciar Seguimiento</button>
+        <button id="stop-tracking-btn" disabled>Detener Seguimiento</button>
+      </div>
+      <div id="location-result">
+        <h3>Resultado de Geolocalización:</h3>
+        <pre id="location-data">
+Presiona un botón para obtener la ubicación.</pre
+        >
+      </div>
+      <div id="tracking-status">
+        <h3>Estado del Seguimiento:</h3>
+        <pre id="tracking-data">No hay seguimiento activo.</pre>
+      </div>
+    </div>
+
     <div id="gallery"></div>
     <script src="event_bus/event_bus.js"></script>
     <script src="app.js"></script>

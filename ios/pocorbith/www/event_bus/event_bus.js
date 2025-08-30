@@ -585,6 +585,7 @@ class EventTypes {
   static GET_LOCATION = 'get_location';
   static START_LOCATION_TRACKING = 'start_location_tracking';
   static STOP_LOCATION_TRACKING = 'stop_location_tracking';
+  static LOCATION_UPDATE = 'location_update';
 
   // === FILES AND STORAGE ===
   static SAVE_FILE = 'save_file';
