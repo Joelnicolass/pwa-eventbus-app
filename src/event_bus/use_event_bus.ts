@@ -1,7 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { EventPayloads, EventResponses } from './types';
 
-interface EventMessage {
+/**
+ * Represents a message sent through the event bus.
+ *
+ * @property type - The type of the event message.
+ * @property payload - The payload data associated with the event.
+ * @property messageId - (Optional) Unique identifier for the message.
+ * @property isResponse - (Optional) Indicates if the message is a response to another message.
+ * @property responseToMessageId - (Optional) The message ID that this message is responding to.
+ */
+export interface EventMessage {
   type: string;
   payload: any;
   messageId?: string;
@@ -9,14 +18,48 @@ interface EventMessage {
   responseToMessageId?: string;
 }
 
+type SubscriberCallback = (payload: any) => Promise<any>;
+type PendingRequest = { resolve: Function; reject: Function };
+type WebViewRef = { current: any } | null;
+
+/**
+ * Manages event-based communication between a WebView and a Progressive Web App (PWA).
+ *
+ * The `EventBus` class provides a mechanism for emitting events to a WebView, subscribing to event types,
+ * handling incoming messages, and managing asynchronous request/response cycles. It supports both sending
+ * events to the WebView and receiving events from it, with built-in support for awaiting responses and
+ * handling timeouts.
+ *
+ * ### Features
+ * - Emit events to the WebView and await responses.
+ * - Subscribe to specific event types with asynchronous handlers.
+ * - Unsubscribe handlers and clean up resources.
+ * - Handles incoming messages, distinguishing between new events and responses.
+ * - Manages pending requests and resolves them upon receiving responses.
+ * - Provides a cleanup method to prevent memory leaks.
+ *
+ * ### Usage
+ * 1. Instantiate with WebView reference.
+ * 2. Use `emit` to send events and await responses.
+ * 3. Use `subscribe` to listen for specific event types.
+ * 4. Bind `handleMessage` to the WebView's `onMessage` prop.
+ * 5. Call `destroy` when the event bus is no longer needed.
+ *
+ * @template EventPayloads - An interface mapping event types to their payload types.
+ * @template EventResponses - An interface mapping event types to their response types.
+ *
+ * @remarks
+ * - All event handlers are asynchronous and may return a promise.
+ * - Responses are matched to requests using unique message IDs.
+ * - If a response is not received within 30 seconds, the request promise is rejected.
+ * - Designed for use in React Native or similar environments with WebView communication.
+ */
 class EventBus {
-  private webViewRef: any = null;
-  private subscribers = new Map<string, Set<(payload: any) => Promise<any>>>();
-  private pendingRequests = new Map<
-    string,
-    { resolve: Function; reject: Function }
-  >();
+  private webViewRef: WebViewRef = null;
+  private subscribers = new Map<string, Set<SubscriberCallback>>();
+  private pendingRequests = new Map<string, PendingRequest>();
   private messageIdCounter = 0;
+  private TIMEOUT_MS = 30000; // 30 segundos
 
   constructor(webViewRef?: any) {
     this.webViewRef = webViewRef;
@@ -26,7 +69,19 @@ class EventBus {
     this.webViewRef = webViewRef;
   }
 
-  // Este método debe ser llamado desde el onMessage del WebView
+  /**
+   * Handles incoming messages from the PWA, parsing the event data and delegating
+   * to the appropriate handler based on whether the message is a response or a new event.
+   *
+   * @param event - The event object containing the message data, which may be accessed via `event.nativeEvent?.data` or `event.data`.
+   *
+   * @remarks
+   * - If the message is a response (determined by `isResponse` and `responseToMessageId`), it calls `handleResponse`.
+   * - Otherwise, it treats the message as a new event and calls `handleIncomingEvent`.
+   * - Any errors during parsing are logged to the console.
+   *
+   * Should be bound to the WebView's onMessage prop.
+   */
   public handleMessage(event: any): void {
     try {
       const messageData = event.nativeEvent?.data || event.data;
@@ -45,6 +100,15 @@ class EventBus {
     }
   }
 
+  /**
+   * Handles an incoming response message by resolving the corresponding pending request.
+   *
+   * This method looks up the pending request associated with the `responseToMessageId` in the message.
+   * If a matching pending request is found, it resolves the request with the message payload and removes
+   * the request from the pending requests map.
+   *
+   * @param message - The response message containing the payload and the ID of the original request.
+   */
   private handleResponse(message: EventMessage): void {
     const pendingRequest = this.pendingRequests.get(
       message.responseToMessageId!,
@@ -55,6 +119,14 @@ class EventBus {
     }
   }
 
+  /**
+   * Handles an incoming event message by executing all subscribed callbacks for the event type.
+   * Waits for all callbacks to complete and sends the first response back if a messageId is present.
+   * In case of errors during callback execution, sends an error response if a messageId is present.
+   *
+   * @param message - The event message containing the type, payload, and optional messageId.
+   * @returns A promise that resolves when all callbacks have been executed and any response has been sent.
+   */
   private async handleIncomingEvent(message: EventMessage): Promise<void> {
     const subscribers = this.subscribers.get(message.type);
     if (subscribers && subscribers.size > 0) {
@@ -87,6 +159,12 @@ class EventBus {
     }
   }
 
+  /**
+   * Sends a response message to the WebView for a given message ID.
+   *
+   * @param messageId - The ID of the message to respond to.
+   * @param payload - The payload to include in the response message.
+   */
   private sendResponse(messageId: string, payload: any): void {
     const responseMessage: EventMessage = {
       type: 'response',
@@ -98,10 +176,28 @@ class EventBus {
     this.postMessageToWebView(responseMessage);
   }
 
+  /**
+   * Generates a unique message identifier string.
+   *
+   * The identifier is composed of a prefix (`msg_`), the current timestamp in milliseconds,
+   * and an incremented counter to ensure uniqueness even within the same millisecond.
+   *
+   * @returns A unique message ID string.
+   */
   private generateMessageId(): string {
     return `msg_${Date.now()}_${++this.messageIdCounter}`;
   }
 
+  /**
+   * Sends a serialized event message to the WebView component.
+   *
+   * This method checks if the WebView reference is available before attempting to send the message.
+   * If the reference is not available, it logs a warning and returns early.
+   * The message is serialized to a JSON string and sent using the WebView's `postMessage` method.
+   * Any errors encountered during serialization or sending are caught and logged to the console.
+   *
+   * @param message - The event message object to be sent to the WebView.
+   */
   private postMessageToWebView(message: EventMessage): void {
     if (!this.webViewRef?.current) {
       console.warn('WebView reference not available');
@@ -116,6 +212,16 @@ class EventBus {
     }
   }
 
+  /**
+   * Emits an event to the WebView and returns a promise that resolves with the response.
+   *
+   * @template T - The event type, constrained to keys present in both `EventPayloads` and `EventResponses`.
+   * @param eventType - The type of event to emit.
+   * @param payload - The payload associated with the event.
+   * @returns A promise that resolves with the response for the emitted event.
+   *
+   * @throws {Error} If the response is not received within 30 seconds, the promise is rejected with a timeout error.
+   */
   public emit<T extends keyof EventPayloads & keyof EventResponses>(
     eventType: T,
     payload: EventPayloads[T],
@@ -142,10 +248,18 @@ class EventBus {
           this.pendingRequests.delete(messageId);
           reject(new Error(`Timeout waiting for response to ${eventType}`));
         }
-      }, 30000); // 30 segundos timeout
+      }, this.TIMEOUT_MS);
     });
   }
 
+  /**
+   * Subscribes to a specific event type, registering a callback to be invoked when the event is emitted.
+   *
+   * @template T - The event type, constrained to keys of both `EventPayloads` and `EventResponses`.
+   * @param eventType - The type of event to subscribe to.
+   * @param callback - An asynchronous function that handles the event payload and returns a response.
+   * @returns A cleanup function that unsubscribes the callback from the event type.
+   */
   public subscribe<T extends keyof EventPayloads & keyof EventResponses>(
     eventType: T,
     callback: (payload: EventPayloads[T]) => Promise<EventResponses[T]>,
@@ -164,6 +278,16 @@ class EventBus {
     };
   }
 
+  /**
+   * Unsubscribes a callback from a specific event type.
+   *
+   * Removes the provided callback from the set of subscribers for the given event type.
+   * If there are no more subscribers for the event type after removal, the event type is deleted from the internal subscribers map.
+   *
+   * @typeParam T - The event type, constrained to keys present in both EventPayloads and EventResponses.
+   * @param eventType - The type of event to unsubscribe from.
+   * @param callback - The callback function to remove, which handles the event payload and returns a promise of the event response.
+   */
   public unsubscribe<T extends keyof EventPayloads & keyof EventResponses>(
     eventType: T,
     callback: (payload: EventPayloads[T]) => Promise<EventResponses[T]>,
@@ -181,6 +305,10 @@ class EventBus {
     }
   }
 
+  /**
+   * Cleans up the event bus by removing all subscribers and clearing any pending requests.
+   * This method should be called when the event bus is no longer needed to prevent memory leaks.
+   */
   public destroy(): void {
     // Limpiar listeners y pendientes
     this.subscribers.clear();
@@ -188,6 +316,16 @@ class EventBus {
   }
 }
 
+/**
+ * Custom React hook that provides an instance of `EventBus` tied to a given WebView reference.
+ *
+ * - Initializes the `EventBus` when the component mounts or when the `webViewRef` changes.
+ * - Cleans up the `EventBus` instance when the component unmounts.
+ * - Updates the `EventBus` with the latest `webViewRef` whenever it changes.
+ *
+ * @param webViewRef - Optional reference to a WebView component.
+ * @returns The current `EventBus` instance, or `null` if not initialized.
+ */
 export const useEventBus = (webViewRef?: any) => {
   const eventBusRef = useRef<EventBus | null>(null);
 
