@@ -5,13 +5,13 @@ import {
   EventTypes,
   IncomingEventPayloads,
   OutgoingEventResponses,
-} from './types';
+} from '../types';
 import {
   DEFAULT_GEOLOCATION_TIMEOUT,
   DEFAULT_MAXIMUM_AGE,
   DEFAULT_DISTANCE_FILTER,
   DEFAULT_LOCATION_INTERVAL,
-} from './constants';
+} from '../constants';
 
 // Definir el tipo de posición de geolocalización
 interface GeolocationPosition {

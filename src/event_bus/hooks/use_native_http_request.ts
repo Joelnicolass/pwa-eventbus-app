@@ -5,13 +5,13 @@ import {
   EventTypes,
   IncomingEventPayloads,
   OutgoingEventResponses,
-} from './types';
+} from '../types';
 import {
   DEFAULT_TIMEOUT,
   DEFAULT_RESPONSE_TYPE,
   METHODS_WITH_BODY,
   StatusCode,
-} from './constants';
+} from '../constants';
 
 type HttpRequest = IncomingEventPayloads[EventTypes.HTTP_REQUEST];
 type HttpResponse = OutgoingEventResponses[EventTypes.HTTP_REQUEST];

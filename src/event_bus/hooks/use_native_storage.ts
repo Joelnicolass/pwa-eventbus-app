@@ -5,7 +5,7 @@ import {
   EventTypes,
   IncomingEventPayloads,
   OutgoingEventResponses,
-} from './types';
+} from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const storage = AsyncStorage;

@@ -395,10 +395,22 @@ function formatLocationData(locationResponse) {
   return `Ubicación obtenida exitosamente:
 Latitud: ${locationResponse.latitude}°
 Longitud: ${locationResponse.longitude}°
-Precisión: ${locationResponse.accuracy ? locationResponse.accuracy.toFixed(2) + ' metros' : 'N/A'}
-Altitud: ${locationResponse.altitude ? locationResponse.altitude.toFixed(2) + ' metros' : 'N/A'}
-Velocidad: ${locationResponse.speed ? locationResponse.speed.toFixed(2) + ' m/s' : 'N/A'}
-Dirección: ${locationResponse.heading ? locationResponse.heading.toFixed(2) + '°' : 'N/A'}
+Precisión: ${
+    locationResponse.accuracy
+      ? locationResponse.accuracy.toFixed(2) + ' metros'
+      : 'N/A'
+  }
+Altitud: ${
+    locationResponse.altitude
+      ? locationResponse.altitude.toFixed(2) + ' metros'
+      : 'N/A'
+  }
+Velocidad: ${
+    locationResponse.speed ? locationResponse.speed.toFixed(2) + ' m/s' : 'N/A'
+  }
+Dirección: ${
+    locationResponse.heading ? locationResponse.heading.toFixed(2) + '°' : 'N/A'
+  }
 Timestamp: ${new Date(locationResponse.timestamp).toLocaleString()}`;
 }
 
@@ -406,12 +418,12 @@ Timestamp: ${new Date(locationResponse.timestamp).toLocaleString()}`;
 getLocationBtn.addEventListener('click', async () => {
   log('Solicitando ubicación actual...');
   locationData.textContent = 'Obteniendo ubicación...';
-  
+
   try {
     const response = await eventBus.emit(EVENT.GET_LOCATION, {
       enableHighAccuracy: true,
       timeout: 15000,
-      maximumAge: 300000
+      maximumAge: 300000,
     });
 
     log('Respuesta de geolocalización recibida', response);
@@ -426,21 +438,22 @@ getLocationBtn.addEventListener('click', async () => {
 startTrackingBtn.addEventListener('click', async () => {
   log('Iniciando seguimiento de ubicación...');
   trackingData.textContent = 'Iniciando seguimiento...';
-  
+
   try {
     const response = await eventBus.emit(EVENT.START_LOCATION_TRACKING, {
       enableHighAccuracy: true,
       distanceFilter: 10, // 10 metros
-      interval: 5000 // 5 segundos
+      interval: 5000, // 5 segundos
     });
 
     log('Respuesta de inicio de seguimiento', response);
-    
+
     if (response.success) {
       isTracking = true;
       startTrackingBtn.disabled = true;
       stopTrackingBtn.disabled = false;
-      trackingData.textContent = 'Seguimiento activo - Esperando actualizaciones de ubicación...';
+      trackingData.textContent =
+        'Seguimiento activo - Esperando actualizaciones de ubicación...';
     } else {
       trackingData.textContent = `Error iniciando seguimiento: ${response.error}`;
     }
@@ -454,12 +467,12 @@ startTrackingBtn.addEventListener('click', async () => {
 stopTrackingBtn.addEventListener('click', async () => {
   log('Deteniendo seguimiento de ubicación...');
   trackingData.textContent = 'Deteniendo seguimiento...';
-  
+
   try {
     const response = await eventBus.emit(EVENT.STOP_LOCATION_TRACKING, {});
 
     log('Respuesta de detener seguimiento', response);
-    
+
     if (response.success) {
       isTracking = false;
       startTrackingBtn.disabled = false;
@@ -475,14 +488,14 @@ stopTrackingBtn.addEventListener('click', async () => {
 });
 
 // Suscribirse a actualizaciones de ubicación desde React Native
-eventBus.subscribe('location_update', async (payload) => {
+eventBus.subscribe('location_update', async payload => {
   log('Actualización de ubicación recibida', payload);
-  
+
   if (isTracking) {
     trackingData.textContent = `Seguimiento activo - Última actualización:
 ${formatLocationData(payload)}`;
   }
-  
+
   // No necesitamos devolver una respuesta para este evento
   return { received: true };
 });

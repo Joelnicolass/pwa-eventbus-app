@@ -4,7 +4,7 @@ import {
   IncomingEventResponses,
   IncomingEventPayloads,
   OutgoingEventResponses,
-} from './types';
+} from '../types';
 
 /**
  * Represents a message sent through the event bus.

@@ -13,12 +13,13 @@ import Server, {
   extractBundledAssets,
 } from '@dr.pogodin/react-native-static-server';
 import * as RNFS from '@dr.pogodin/react-native-fs';
-import { useEventBus } from './src/event_bus/use_event_bus';
+import { useEventBus } from './src/event_bus/hooks/use_event_bus';
 import { EventTypes } from './src/event_bus/types';
-import { useNativeHttpRequest } from './src/event_bus/use_native_http_request';
-import { useCustomEvents } from './src/event_bus/use_custom_events';
-import { useNativeStorage } from './src/event_bus/use_native_storage';
-import { useNativeLocation } from './src/event_bus/use_native_location';
+import { useNativeHttpRequest } from './src/event_bus/hooks/use_native_http_request';
+import { useCustomEvents } from './src/event_bus/hooks/use_custom_events';
+import { useNativeStorage } from './src/event_bus/hooks/use_native_storage';
+import { useNativeLocation } from './src/event_bus/hooks/use_native_location';
+import NativeCamera from './src/event_bus/components/native_camera';
 
 export default function App() {
   const [url, setUrl] = useState<string | null>(null);
@@ -196,6 +197,9 @@ export default function App() {
   if (!url || !isServerReady) {
     return null; // Podríamos mostrar un loading spinner aquí
   }
+
+  const isActiveCamera = true;
+  if (isActiveCamera) return <NativeCamera />;
 
   return (
     <SafeAreaProvider>
