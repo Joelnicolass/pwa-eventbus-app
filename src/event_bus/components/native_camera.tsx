@@ -4,6 +4,7 @@ import {
   Camera,
   useCameraDevice,
   useCameraPermission,
+  useCodeScanner,
 } from 'react-native-vision-camera';
 
 const NativeCamera = () => {
@@ -12,6 +13,13 @@ const NativeCamera = () => {
   const camera = useRef<Camera>(null);
 
   const isAvailable = device && hasPermission;
+
+  const codeScanner = useCodeScanner({
+    codeTypes: ['qr', 'ean-13'],
+    onCodeScanned: codes => {
+      console.log(`Scanned ${codes.length} codes!`);
+    },
+  });
 
   const takePhoto = async () => {
     try {
@@ -31,10 +39,11 @@ const NativeCamera = () => {
       <View style={styles.container}>
         <Camera
           ref={camera}
-          style={StyleSheet.absoluteFill}
-          device={device}
-          isActive={true}
           photo={true}
+          isActive={true}
+          device={device}
+          codeScanner={codeScanner}
+          style={StyleSheet.absoluteFill}
         />
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.captureButton} onPress={takePhoto}>
