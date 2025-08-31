@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, TouchableOpacity, View, Alert } from 'react-native';
 import {
   Camera,
@@ -9,15 +9,28 @@ import {
 
 const NativeCamera = () => {
   const device = useCameraDevice('back');
-  const { hasPermission } = useCameraPermission();
+  const { hasPermission, requestPermission } = useCameraPermission();
   const camera = useRef<Camera>(null);
+
+  useEffect(() => {
+    if (!hasPermission) {
+      requestPermission().then(result => {
+        if (!result) {
+          Alert.alert(
+            'Permiso denegado',
+            'No se pudo obtener permiso para la cámara',
+          );
+        }
+      });
+    }
+  }, [hasPermission, requestPermission]);
 
   const isAvailable = device && hasPermission;
 
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
     onCodeScanned: codes => {
-      console.log(`Scanned ${codes.length} codes!`);
+      Alert.alert('Código escaneado', codes.map(c => c.value).join(', '));
     },
   });
 
