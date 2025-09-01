@@ -351,4 +351,5 @@ export const useEventBus = (webViewRef?: any) => {
   return eventBusRef.current;
 };
 
-export type { EventBus };
+export type { EventBus as EventBusType };
+export default EventBus;

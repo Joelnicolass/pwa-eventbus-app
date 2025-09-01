@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { EventBus } from './use_event_bus';
+import { EventBusType as EventBus } from './use_event_bus';
 import Geolocation from '@react-native-community/geolocation';
 import {
   EventTypes,

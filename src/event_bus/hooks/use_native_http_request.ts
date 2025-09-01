@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { EventBus } from './use_event_bus';
+import { EventBusType as EventBus } from './use_event_bus';
 import { useEffect } from 'react';
 import {
   EventTypes,

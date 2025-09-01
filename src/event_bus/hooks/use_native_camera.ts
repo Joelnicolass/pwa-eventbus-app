@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { EventBus } from './use_event_bus';
+import { EventBusType as EventBus } from './use_event_bus';
 
 export const useNativeCamera = (eventBus: EventBus | null) => {
   useEffect(() => {
