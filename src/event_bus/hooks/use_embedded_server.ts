@@ -12,13 +12,33 @@ interface EmbeddedServerState {
   error: string | null;
 }
 
+const EMBEDDED_INITIAL_STATE: EmbeddedServerState = {
+  url: null,
+  isServerReady: false,
+  isLoading: false,
+  error: null,
+};
+
+const createEmbeddedSuccesState = (url: string): EmbeddedServerState => ({
+  url,
+  isServerReady: true,
+  isLoading: false,
+  error: null,
+});
+
+const createEmbeddedErrorState = (
+  errorMessage: string,
+): EmbeddedServerState => ({
+  url: null,
+  isServerReady: false,
+  isLoading: false,
+  error: errorMessage,
+});
+
 export const useEmbeddedServer = (shouldStart: boolean = false) => {
-  const [serverState, setServerState] = useState<EmbeddedServerState>({
-    url: null,
-    isServerReady: false,
-    isLoading: false,
-    error: null,
-  });
+  const [serverState, setServerState] = useState<EmbeddedServerState>(
+    EMBEDDED_INITIAL_STATE,
+  );
 
   const refServer = useRef<Server | null>(null);
   const isInitialized = useRef(false);
@@ -50,12 +70,7 @@ export const useEmbeddedServer = (shouldStart: boolean = false) => {
       const startedUrl = await server.start();
 
       refServer.current = server;
-      setServerState({
-        url: startedUrl,
-        isServerReady: true,
-        isLoading: false,
-        error: null,
-      });
+      setServerState(createEmbeddedSuccesState(startedUrl));
 
       return startedUrl;
     } catch (err) {
@@ -64,12 +79,7 @@ export const useEmbeddedServer = (shouldStart: boolean = false) => {
         'No se pudo iniciar el servidor local: ' + (err as Error).message;
 
       isInitialized.current = false;
-      setServerState({
-        url: null,
-        isServerReady: false,
-        isLoading: false,
-        error: errorMessage,
-      });
+      setServerState(createEmbeddedErrorState(errorMessage));
 
       Alert.alert('Error', errorMessage);
       return null;
@@ -81,12 +91,7 @@ export const useEmbeddedServer = (shouldStart: boolean = false) => {
       refServer.current.stop();
       refServer.current = null;
       isInitialized.current = false;
-      setServerState({
-        url: null,
-        isServerReady: false,
-        isLoading: false,
-        error: null,
-      });
+      setServerState(EMBEDDED_INITIAL_STATE);
     }
   }, []);
 
