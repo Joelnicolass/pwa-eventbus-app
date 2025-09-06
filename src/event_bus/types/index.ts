@@ -162,6 +162,8 @@ export enum EventTypes {
   // === EVENTOS PERSONALIZADOS ===
   CUSTOM_EVENT = 'custom_event',
   PWA_CUSTOM_EVENT = 'pwa_custom_event',
+
+  TEST = 'test',
 }
 
 /**
@@ -448,6 +450,10 @@ export interface IncomingEventPayloads {
     [key: string]: any;
     test: string;
   };
+
+  [EventTypes.TEST]: {
+    [key: string]: any;
+  };
 }
 
 /**
@@ -563,4 +569,6 @@ export interface OutgoingEventResponses {
   [EventTypes.PWA_CUSTOM_EVENT]: {
     [key: string]: any;
   };
+
+  [EventTypes.TEST]: void;
 }

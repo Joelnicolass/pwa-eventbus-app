@@ -613,6 +613,8 @@ class EventTypes {
   // === CUSTOM EVENTS ===
   static CUSTOM_EVENT = 'custom_event';
   static PWA_CUSTOM_EVENT = 'pwa_custom_event';
+
+  static TEST = 'test';
 }
 
 // ========================================

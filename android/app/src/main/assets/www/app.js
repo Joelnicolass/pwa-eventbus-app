@@ -248,9 +248,7 @@ document.getElementById('api-btn2').addEventListener('click', () => {
   // http://192.168.1.1/cgi-bin/cgiclient?request={"FunctionName":"GetBeamData","Params":{"BeamId":8}}
 
   //fetch('http://192.168.1.1/html/login_inter.html') // Cambiar por la ruta real
-  fetch(
-    'https://api.openweathermap.org/data/2.5/weather?lang=es&units=metric&lat=-34.6037&lon=-58.3816&cnt=12&appid=059b4798edc77a61d9344ec2f33a1251',
-  ) // Cambiar por la ruta real
+  fetch('https://jsonplaceholder.typicode.com/posts/1') // Cambiar por la ruta real
     .then(res => res.json())
     .then(data => {
       document.getElementById('api-result2').textContent = JSON.stringify(
@@ -461,6 +459,20 @@ startTrackingBtn.addEventListener('click', async () => {
     log('Error iniciando seguimiento', error);
     trackingData.textContent = `Error: ${error.message}`;
   }
+});
+
+// crear boton de test
+const testEventBtn = document.createElement('button');
+testEventBtn.textContent = 'Enviar Evento de Test';
+testEventBtn.id = 'test-event-btn';
+document.body.appendChild(testEventBtn);
+
+// área para mostrar resultados del evento de test
+testEventBtn.addEventListener('click', async () => {
+  eventBus.emit('test', {
+    data: 'Test',
+    data2: 'Tobi se la come',
+  });
 });
 
 // Detener seguimiento de ubicación
