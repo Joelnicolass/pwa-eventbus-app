@@ -7,7 +7,7 @@ interface PermissionsState {
   permissionsStatus: { [key: string]: boolean };
 }
 
-export const usePermissions = () => {
+export const useNativePermissions = () => {
   const [permissionsState, setPermissionsState] = useState<PermissionsState>({
     isLoading: true,
     allPermissionsGranted: false,
