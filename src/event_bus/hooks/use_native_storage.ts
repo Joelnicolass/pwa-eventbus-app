@@ -7,6 +7,7 @@ import {
   createErrorFromException,
   ErrorCode,
   StandardResponse,
+  GetStorageData,
 } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -19,13 +20,6 @@ type DeleteStorageRequest =
   IncomingEventPayloads[EventTypes.DELETE_FROM_LOCAL_STORAGE];
 type ClearStorageRequest =
   IncomingEventPayloads[EventTypes.CLEAR_LOCAL_STORAGE];
-
-// Tipos de datos específicos para cada operación
-interface GetStorageData {
-  key: string;
-  value: string | null;
-  requestId: string;
-}
 
 /**
  * Executes a storage set operation and returns a standardized response.

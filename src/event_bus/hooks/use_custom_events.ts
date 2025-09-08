@@ -7,17 +7,11 @@ import {
   createErrorFromException,
   ErrorCode,
   StandardResponse,
+  TestEventData,
 } from '../types';
 import { Alert } from 'react-native';
 
 type TestEventRequest = IncomingEventPayloads[EventTypes.TEST];
-
-// Tipo de datos para respuesta de evento TEST
-interface TestEventData {
-  message: string;
-  receivedData: any;
-  processedAt: string;
-}
 
 /**
  * Executes TEST event processing and returns a standardized response.

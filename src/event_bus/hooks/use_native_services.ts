@@ -20,18 +20,12 @@ import { useCustomEvents } from './use_custom_events';
 export const useNativeServices = () => {
   const eventBus = useGlobalEventBus();
 
-  console.log('🚀 useNativeServices: EventBus disponible:', !!eventBus);
-
   // Inicializar todos los servicios nativos
   useNativeStorage(eventBus);
   useNativeLocation(eventBus);
   useNativeHttpRequest(eventBus);
   useNativeCamera(eventBus);
   useCustomEvents(eventBus);
-
-  console.log(
-    '✅ useNativeServices: Todos los servicios nativos inicializados',
-  );
 
   return {};
 };

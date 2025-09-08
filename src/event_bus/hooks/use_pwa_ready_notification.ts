@@ -1,7 +1,11 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useGlobalEventBus } from '../providers/event_bus_provider';
-import { EventTypes } from '../types';
+import {
+  EventTypes,
+  createSuccessResponse,
+  InitializationResponse,
+} from '../types';
 
 interface UsePwaReadyNotificationProps {
   isServerReady: boolean;
@@ -20,7 +24,13 @@ export const usePwaReadyNotification = ({
       EventTypes.PWA_READY,
       async payload => {
         console.log('PWA está lista:', payload);
-        return { status: 'native_ready', timestamp: Date.now() };
+
+        const responseData: InitializationResponse = {
+          status: 'native_ready',
+          timestamp: Date.now(),
+        };
+
+        return createSuccessResponse(EventTypes.PWA_READY, responseData);
       },
     );
 

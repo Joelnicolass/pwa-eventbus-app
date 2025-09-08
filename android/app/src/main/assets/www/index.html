@@ -5,67 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="style.css" />
-    <title>PWA Cámara GPS</title>
+    <title>PWA EventBus Console</title>
   </head>
   <body>
-    <script type="text/javascript">
-      navigator.serviceWorker.register('service-worker.js').then(
-        function (registration) {
-          console.log(
-            'ServiceWorker registration successful with scope: ',
-            registration.scope,
-          );
-        },
-        function (err) {
-          console.log('ServiceWorker registration failed: ', err);
-        },
-      );
-    </script>
-    <h1>Cámara + GPS - POC 0.1</h1>
-    <button id="take-photo">Tomar Foto</button>
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display: none"></canvas>
+    <div class="container">
+      <header>
+        <h1>🌉 PWA EventBus Console</h1>
+        <p class="subtitle">Consola de comunicación PWA ↔ React Native</p>
 
-    <h2>Consulta API local</h2>
-    <button id="api-btn">Consultar API</button>
-    <pre id="api-result"></pre>
+        <div class="status-bar">
+          <div id="connection-status" class="status-indicator">
+            <span id="status-text">Inicializando...</span>
+          </div>
+          <div class="mode-control">
+            <label for="mode-selector">Modo:</label>
+            <select id="mode-selector">
+              <option value="auto">🔄 Auto</option>
+              <option value="real">🌉 Real</option>
+              <option value="mock">🎭 Mock</option>
+            </select>
+            <span id="mode-indicator" class="mode-badge auto">AUTO</span>
+          </div>
+        </div>
+      </header>
 
-    <h2>Consulta API REMOTA</h2>
-    <button id="api-btn2">Consultar API 2</button>
-    <pre id="api-result2"></pre>
+      <!-- Controles básicos -->
+      <section class="controls">
+        <div class="button-group">
+          <button id="test-btn" class="btn primary">🧪 Test Simple</button>
+          <button id="device-btn" class="btn secondary">📱 Device Info</button>
+          <button id="location-btn" class="btn secondary">📍 Location</button>
+          <button id="storage-btn" class="btn secondary">
+            💾 Storage Test
+          </button>
+        </div>
 
-    <h2>Storage Local</h2>
-    <div id="storage-section">
-      <input
-        type="text"
-        id="storage-input"
-        placeholder="Texto para guardar en storage"
-      />
-      <button id="save-storage-btn">Guardar en Storage</button>
-      <pre id="storage-result">No hay valor guardado en storage.</pre>
+        <!-- Configuración Mock (solo visible en modo mock) -->
+        <div id="mock-controls" class="mock-panel" style="display: none">
+          <label>
+            <input type="checkbox" id="simulate-errors" />
+            Simular errores (10%)
+          </label>
+          <button id="stats-btn" class="btn small">📊 Stats</button>
+        </div>
+      </section>
+
+      <!-- Consola principal -->
+      <section class="console-section">
+        <div class="console-header">
+          <h2>📟 Consola de Eventos</h2>
+          <div class="console-controls">
+            <button id="clear-btn" class="btn small">🗑️ Limpiar</button>
+            <label>
+              <input type="checkbox" id="auto-scroll" checked />
+              Auto-scroll
+            </label>
+          </div>
+        </div>
+        <div id="console" class="console"></div>
+      </section>
+
+      <!-- Stats mínimas -->
+      <footer class="stats-footer">
+        <span>Eventos suscritos: <strong id="events-count">0</strong></span>
+        <span>Mensajes enviados: <strong id="messages-count">0</strong></span>
+        <span id="footer-mode">Modo: Auto-detección</span>
+      </footer>
     </div>
 
-    <h2>Geolocalización</h2>
-    <div id="location-section">
-      <div id="location-buttons">
-        <button id="get-location-btn">Obtener Ubicación Actual</button>
-        <button id="start-tracking-btn">Iniciar Seguimiento</button>
-        <button id="stop-tracking-btn" disabled>Detener Seguimiento</button>
-      </div>
-      <div id="location-result">
-        <h3>Resultado de Geolocalización:</h3>
-        <pre id="location-data">
-Presiona un botón para obtener la ubicación.</pre
-        >
-      </div>
-      <div id="tracking-status">
-        <h3>Estado del Seguimiento:</h3>
-        <pre id="tracking-data">No hay seguimiento activo.</pre>
-      </div>
-    </div>
-
-    <div id="gallery"></div>
+    <!-- Scripts -->
     <script src="event_bus/event_bus.js"></script>
+    <script src="event_bus/event_bus_mock.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -21,126 +21,107 @@
  */
 
 /**
- * Manages bidirectional event-based communication between a Progressive Web App (PWA)
- * and a React Native application running as the WebView container.
+ * 🌉 PWA EventBus - Framework de Comunicación Bidireccional
  *
- * The `PWAEventBus` provides a robust mechanism for message exchange between the PWA
- * code and the native application, enabling both event emission and asynchronous
- * response reception.
+ * Esta clase gestiona la comunicación entre la PWA y React Native de manera robusta y tipada.
  *
- * ### Key Features:
- * - **Bidirectional communication**: Sends events from PWA to Native and vice versa
- * - **Response handling**: Allows waiting for asynchronous responses with automatic timeouts
- * - **Multiple subscriptions**: Multiple handlers can subscribe to the same event type
- * - **Automatic environment detection**: Works in both WebView and browser environments
- * - **Logging system**: Detailed logs for debugging and monitoring
- * - **Error handling**: Captures and handles errors in both sending and receiving
- * - **Automatic memory management**: Automatic cleanup to prevent memory leaks
+ * ✨ CARACTERÍSTICAS PRINCIPALES:
+ * • Comunicación bidireccional (PWA ↔ React Native)
+ * • Manejo de respuestas asíncronas con timeouts automáticos
+ * • Múltiples suscripciones por tipo de evento
+ * • Detección automática del entorno (WebView vs Browser)
+ * • Sistema de logging detallado para debugging
+ * • Manejo robusto de errores en envío y recepción
+ * • Limpieza automática de memoria para prevenir leaks
  *
- * ### Communication Flow:
+ * 🚀 FLUJO DE COMUNICACIÓN:
  * ```
  * [PWA] --emit--> [React Native] --response--> [PWA]
  * [React Native] --emit--> [PWA] --response--> [React Native]
  * ```
  *
- * ### Usage Examples:
- *
- * **Send an event and wait for response:**
+ * 💡 EJEMPLO DE USO BÁSICO:
  * ```javascript
  * const eventBus = new PWAEventBus();
  *
- * // Request device information
- * const deviceInfo = await eventBus.emit('GET_DEVICE_INFO', {
+ * // Enviar evento y esperar respuesta
+ * const response = await eventBus.emit('GET_DEVICE_INFO', {
  *   includeHardware: true
  * });
  *
- * console.log('Device information:', deviceInfo);
+ * // Suscribirse a eventos desde React Native
+ * const unsubscribe = eventBus.subscribe('NATIVE_READY', async (payload) => {
+ *   console.log('React Native está listo:', payload);
+ *   return { success: true, data: 'PWA confirmó recepción' };
+ * });
  * ```
- *
- * ### Automatic Setup:
- * The EventBus configures itself automatically when instantiated, detecting whether it's
- * running inside a React Native WebView or in a standard browser, and adjusting its
- * communication behavior accordingly.
- *
- * @remarks
- * - All event handlers are asynchronous and can return promises
- * - Responses are associated with requests using unique message IDs
- * - If no response is received within 30 seconds, the promise is rejected with timeout
- * - Designed specifically for PWA environments with WebView communication
- * - Supports multiple subscribers per event type
- * - Automatic JSON serialization/deserialization handling
- * - Configurable logging system for development and production
  */
 class PWAEventBus {
   /**
-   * Creates a new instance of PWAEventBus.
-   *
-   * Automatically configures message listeners and detects the execution environment.
+   * Crea una nueva instancia de PWAEventBus.
+   * Se configura automáticamente detectando el entorno y estableciendo listeners.
    */
   constructor() {
-    /** @private {Map<string, Set<Function>>} Map of subscribers by event type */
+    /** @private {Map<string, Set<Function>>} Mapa de suscriptores por tipo de evento */
     this.subscribers = new Map();
 
-    /** @private {Map<string, Object>} Map of pending requests */
+    /** @private {Map<string, Object>} Mapa de peticiones pendientes */
     this.pendingRequests = new Map();
 
-    /** @private {number} Counter to generate unique message IDs */
+    /** @private {number} Contador para generar IDs únicos de mensaje */
     this.messageIdCounter = 0;
 
-    /** @private {number} Timeout in milliseconds to wait for responses */
-    this.TIMEOUT_MS = 30000; // 30 seconds
+    /** @private {number} Timeout en milisegundos para esperar respuestas */
+    this.TIMEOUT_MS = 30000; // 30 segundos
 
-    /** @private {boolean} Enable logs in development mode */
+    /** @private {boolean} Habilitar logs en modo desarrollo */
     this.DEBUG_MODE = true;
 
-    this.log('PWAEventBus initialized successfully');
+    this.log('🌉 PWAEventBus inicializado exitosamente');
     this.setupMessageListeners();
   }
 
   // ========================================
-  // SETUP AND MESSAGE HANDLING
+  // 🔧 CONFIGURACIÓN Y MANEJO DE MENSAJES
   // ========================================
 
   /**
-   * Sets up listeners to receive messages from React Native WebView.
-   *
-   * Establishes multiple listeners as fallbacks to ensure compatibility
-   * with different WebView versions and configurations.
+   * Configura listeners para recibir mensajes desde React Native WebView.
+   * Establece múltiples listeners como fallbacks para asegurar compatibilidad.
    *
    * @private
    */
   setupMessageListeners() {
-    this.log('Setting up message listeners...');
+    this.log('🔌 Configurando listeners de mensajes...');
 
-    // Main listener for WebView messages
+    // Listener principal para mensajes de WebView
     window.addEventListener('message', this.handleMessage.bind(this));
 
-    // Additional listener for document (fallback)
+    // Listener adicional para document (fallback)
     document.addEventListener('message', this.handleMessage.bind(this));
 
-    // Global listener (additional fallback)
+    // Listener global (fallback adicional)
     window.onmessage = this.handleMessage.bind(this);
 
     const environment = window.ReactNativeWebView
       ? 'React Native WebView'
       : 'Browser/Development';
 
-    this.log(`Environment detected: ${environment}`);
+    this.log(`🌍 Entorno detectado: ${environment}`);
   }
 
   /**
-   * Handles all incoming messages from React Native, parsing event data
-   * and delegating to the appropriate handler based on whether it's a response or new event.
+   * 📨 Maneja todos los mensajes entrantes desde React Native.
    *
-   * This method is the main entry point for all messages coming from
-   * the React Native application.
+   * Este método es el punto de entrada principal para todos los mensajes
+   * provenientes de la aplicación React Native.
    *
-   * @param {Event} event - Event object containing message data
+   * @param {Event} event - Objeto evento que contiene los datos del mensaje
    *
    * @remarks
-   * - If the message is a response (has `isResponse` and `responseToMessageId`), calls `handleResponse`
-   * - Otherwise, treats the message as a new event and calls `handleIncomingEvent`
-   * - Parsing errors are logged to console but don't interrupt execution
+   * - Si el mensaje es una respuesta (tiene `isResponse` y `responseToMessageId`), llama a `handleResponse`
+   * - De lo contrario, trata el mensaje como un evento nuevo y llama a `handleIncomingEvent`
+   * - Los errores de parsing se registran en consola pero no interrumpen la ejecución
    */
   handleMessage(event) {
     try {
@@ -150,28 +131,27 @@ class PWAEventBus {
       const message = this.parseMessage(messageData);
       if (!message) return;
 
-      this.log('Message received:', message);
+      this.log('📩 Mensaje recibido:', message);
 
       if (message.isResponse && message.responseToMessageId) {
-        // It's a response to a message we sent
+        // Es una respuesta a un mensaje que enviamos
         this.handleResponse(message);
       } else {
-        // It's a new event from React Native
+        // Es un evento nuevo desde React Native
         this.handleIncomingEvent(message);
       }
     } catch (error) {
-      this.logError('Error handling message:', error);
+      this.logError('❌ Error manejando mensaje:', error);
     }
   }
 
   /**
-   * Extracts message data from the event object.
-   *
-   * Handles different event formats and properties where data might be located.
+   * Extrae los datos del mensaje del objeto evento.
+   * Maneja diferentes formatos de evento y propiedades donde pueden estar los datos.
    *
    * @private
-   * @param {Event} event - The event object
-   * @returns {*|null} The message data or null if not found
+   * @param {Event} event - El objeto evento
+   * @returns {*|null} Los datos del mensaje o null si no se encuentran
    */
   extractMessageData(event) {
     if (event.data) return event.data;
@@ -180,11 +160,11 @@ class PWAEventBus {
   }
 
   /**
-   * Parses the message from JSON string to JavaScript object.
+   * Parsea el mensaje desde string JSON a objeto JavaScript.
    *
    * @private
-   * @param {string|Object} messageData - The message data to parse
-   * @returns {Object|null} The parsed message or null if error
+   * @param {string|Object} messageData - Los datos del mensaje a parsear
+   * @returns {Object|null} El mensaje parseado o null si hay error
    */
   parseMessage(messageData) {
     try {
@@ -195,27 +175,24 @@ class PWAEventBus {
       }
       return null;
     } catch (parseError) {
-      this.logError('Error parsing message:', parseError);
+      this.logError('❌ Error parseando mensaje:', parseError);
       return null;
     }
   }
 
   // ========================================
-  // RESPONSE AND EVENT HANDLING
+  // 🔄 MANEJO DE RESPUESTAS Y EVENTOS
   // ========================================
 
   /**
-   * Handles an incoming response by resolving the corresponding pending request.
-   *
-   * Looks for the pending request associated with the `responseToMessageId` in the message.
-   * If it finds a matching request, resolves it with the message payload.
+   * 📬 Maneja una respuesta entrante resolviendo la petición pendiente correspondiente.
    *
    * @private
-   * @param {EventMessage} message - The response message
+   * @param {EventMessage} message - El mensaje de respuesta
    */
   handleResponse(message) {
     this.log(
-      `Response received for message ID: ${message.responseToMessageId}`,
+      `📬 Respuesta recibida para mensaje ID: ${message.responseToMessageId}`,
     );
 
     const pendingRequest = this.pendingRequests.get(
@@ -226,55 +203,58 @@ class PWAEventBus {
       pendingRequest.resolve(message.payload);
       this.pendingRequests.delete(message.responseToMessageId);
       this.log(
-        `Pending request resolved for ID: ${message.responseToMessageId}`,
+        `✅ Petición pendiente resuelta para ID: ${message.responseToMessageId}`,
       );
     } else {
       this.logError(
-        `No pending request found for ID: ${message.responseToMessageId}`,
+        `❌ No se encontró petición pendiente para ID: ${message.responseToMessageId}`,
       );
     }
   }
 
   /**
-   * Handles an incoming event by executing all callbacks subscribed to the event type.
-   * Waits for all callbacks to finish and sends the first response back if there's a messageId.
-   * In case of errors during callback execution, sends an error response.
+   * 🎯 Maneja un evento entrante ejecutando todos los callbacks suscritos al tipo de evento.
+   * Espera a que todos los callbacks terminen y envía la primera respuesta de vuelta si hay messageId.
+   * En caso de errores durante la ejecución de callbacks, envía una respuesta de error.
    *
    * @private
-   * @param {EventMessage} message - The event message
-   * @returns {Promise<void>} Promise that resolves when all callbacks have been executed
+   * @param {EventMessage} message - El mensaje del evento
+   * @returns {Promise<void>} Promesa que se resuelve cuando todos los callbacks han sido ejecutados
    */
   async handleIncomingEvent(message) {
     const subscribers = this.subscribers.get(message.type);
 
     if (!subscribers || subscribers.size === 0) {
-      this.log(`No subscribers for event: ${message.type}`);
+      this.log(`⚠️ No hay suscriptores para el evento: ${message.type}`);
       return;
     }
 
     this.log(
-      `Executing ${subscribers.size} subscriber(s) for event: ${message.type}`,
+      `🎯 Ejecutando ${subscribers.size} suscriptor(es) para evento: ${message.type}`,
     );
 
     try {
-      // Execute all callbacks subscribed to the event
+      // Ejecutar todos los callbacks suscritos al evento
       const promises = Array.from(subscribers).map(callback =>
         callback(message.payload),
       );
 
-      // Wait for all callbacks to finish and take the first response
+      // Esperar a que todos los callbacks terminen y tomar la primera respuesta
       const responses = await Promise.all(promises);
-      const response = responses[0]; // Take the first response
+      const response = responses[0]; // Tomar la primera respuesta
 
-      // If the message has messageId, send response
+      // Si el mensaje tiene messageId, enviar respuesta
       if (message.messageId) {
-        this.log(`Sending response for message ID: ${message.messageId}`);
+        this.log(`📤 Enviando respuesta para mensaje ID: ${message.messageId}`);
         this.sendResponse(message.messageId, response);
       }
     } catch (error) {
-      this.logError(`Error executing subscribers for ${message.type}:`, error);
+      this.logError(
+        `❌ Error ejecutando suscriptores para ${message.type}:`,
+        error,
+      );
 
-      // Send error response if needed
+      // Enviar respuesta de error si es necesario
       if (message.messageId) {
         this.sendResponse(message.messageId, {
           code: 'HANDLER_ERROR',
@@ -286,11 +266,11 @@ class PWAEventBus {
   }
 
   /**
-   * Sends a response to React Native for a specific messageId.
+   * Envía una respuesta a React Native para un messageId específico.
    *
    * @private
-   * @param {string} messageId - The ID of the message being responded to
-   * @param {*} payload - The response data
+   * @param {string} messageId - El ID del mensaje al que se está respondiendo
+   * @param {*} payload - Los datos de respuesta
    */
   sendResponse(messageId, payload) {
     const responseMessage = {
@@ -300,76 +280,74 @@ class PWAEventBus {
       responseToMessageId: messageId,
     };
 
-    this.log(`Sending response for ID: ${messageId}`, responseMessage);
+    this.log(`📤 Enviando respuesta para ID: ${messageId}`, responseMessage);
     this.postMessageToReactNative(responseMessage);
   }
 
   // ========================================
-  // COMMUNICATION UTILITIES
+  // 🛠️ UTILIDADES DE COMUNICACIÓN
   // ========================================
 
   /**
-   * Generates a unique message identifier.
-   *
-   * The identifier is composed of a prefix ('pwa_'), current timestamp,
-   * and an incrementing counter to ensure uniqueness even in the same millisecond.
+   * Genera un identificador único de mensaje.
+   * El identificador está compuesto por un prefijo ('pwa_'), timestamp actual,
+   * y un contador incremental para asegurar unicidad incluso en el mismo milisegundo.
    *
    * @private
-   * @returns {string} Unique message ID
+   * @returns {string} ID único de mensaje
    */
   generateMessageId() {
     return `pwa_${Date.now()}_${++this.messageIdCounter}`;
   }
 
   /**
-   * Sends a serialized message to the React Native WebView component.
-   *
-   * Automatically detects if running in a React Native WebView
-   * or in a standard browser and uses the appropriate communication method.
+   * 📡 Envía un mensaje serializado al componente React Native WebView.
+   * Detecta automáticamente si está ejecutándose en un React Native WebView
+   * o en un navegador estándar y usa el método de comunicación apropiado.
    *
    * @private
-   * @param {EventMessage} message - The message to send
-   * @throws {Error} If an error occurs during serialization or sending
+   * @param {EventMessage} message - El mensaje a enviar
+   * @throws {Error} Si ocurre un error durante la serialización o envío
    */
   postMessageToReactNative(message) {
     try {
       const messageString = JSON.stringify(message);
 
       if (window.ReactNativeWebView) {
-        this.log('Sending message via ReactNativeWebView');
+        this.log('📡 Enviando mensaje vía ReactNativeWebView');
         window.ReactNativeWebView.postMessage(messageString);
       } else {
-        this.log('Sending message via window.parent (fallback)');
+        this.log('📡 Enviando mensaje vía window.parent (fallback)');
         window.parent.postMessage(messageString, '*');
       }
     } catch (error) {
-      this.logError('Error sending message to React Native:', error);
+      this.logError('❌ Error enviando mensaje a React Native:', error);
       throw error;
     }
   }
 
   // ========================================
-  // PUBLIC API
+  // 🚀 API PÚBLICA
   // ========================================
 
   /**
-   * Emits an event to React Native and returns a promise that resolves with the response.
+   * 🚀 Emite un evento a React Native y retorna una promesa que se resuelve con la respuesta.
    *
-   * @param {string} eventType - The type of event to emit
-   * @param {*} payload - The data associated with the event
-   * @returns {Promise<*>} Promise that resolves with the event response
+   * @param {string} eventType - El tipo de evento a emitir
+   * @param {*} payload - Los datos asociados con el evento
+   * @returns {Promise<*>} Promesa que se resuelve con la respuesta del evento
    *
-   * @throws {Error} If the response is not received within 30 seconds
+   * @throws {Error} Si la respuesta no se recibe en 30 segundos
    *
    * @example
    * ```javascript
-   * // Request camera permissions
+   * // Solicitar permisos de cámara
    * const result = await eventBus.emit('CAMERA_PERMISSION_REQUEST', {
-   *   reason: "We need camera access to take photos"
+   *   reason: "Necesitamos acceso a la cámara para tomar fotos"
    * });
    *
    * if (result.granted) {
-   *   console.log("Permission granted");
+   *   console.log("Permiso concedido");
    * }
    * ```
    */
@@ -377,29 +355,32 @@ class PWAEventBus {
     return new Promise((resolve, reject) => {
       const messageId = this.generateMessageId();
 
-      this.log(`Emitting event: ${eventType} with ID: ${messageId}`, payload);
+      this.log(
+        `🚀 Emitiendo evento: ${eventType} con ID: ${messageId}`,
+        payload,
+      );
 
-      // Store the pending promise
+      // Guardar la promesa pendiente
       this.pendingRequests.set(messageId, { resolve, reject });
 
-      // Create message
+      // Crear mensaje
       const message = {
         type: eventType,
         payload,
         messageId,
       };
 
-      // Send message
+      // Enviar mensaje
       this.postMessageToReactNative(message);
 
-      // Timeout to avoid hanging promises
+      // Timeout para evitar promesas colgadas
       setTimeout(() => {
         if (this.pendingRequests.has(messageId)) {
           this.pendingRequests.delete(messageId);
           const error = new Error(
-            `Timeout waiting for response to ${eventType} (ID: ${messageId})`,
+            `⏱️ Timeout esperando respuesta de ${eventType} (ID: ${messageId})`,
           );
-          this.logError('Timeout:', error);
+          this.logError('⏱️ Timeout:', error);
           reject(error);
         }
       }, this.TIMEOUT_MS);
@@ -407,18 +388,18 @@ class PWAEventBus {
   }
 
   /**
-   * Subscribes to a specific event type, registering a callback to be invoked
-   * when the event is emitted from React Native.
+   * 📡 Se suscribe a un tipo de evento específico, registrando un callback a ser invocado
+   * cuando el evento es emitido desde React Native.
    *
-   * @param {string} eventType - The event type to subscribe to
-   * @param {Function} callback - Async function that handles the event payload and returns a response
-   * @returns {Function} Cleanup function that cancels the subscription
+   * @param {string} eventType - El tipo de evento al que suscribirse
+   * @param {Function} callback - Función async que maneja el payload del evento y retorna una respuesta
+   * @returns {Function} Función de limpieza que cancela la suscripción
    *
-   * @throws {Error} If the callback is not a function
+   * @throws {Error} Si el callback no es una función
    *
    * @example
    * ```javascript
-   * // Subscribe to HTTP requests
+   * // Suscribirse a solicitudes HTTP
    * const unsubscribe = eventBus.subscribe('HTTP_REQUEST', async (request) => {
    *   const response = await fetch(request.url);
    *   return {
@@ -427,13 +408,13 @@ class PWAEventBus {
    *   };
    * });
    *
-   * // Clean up when needed
+   * // Limpiar cuando sea necesario
    * unsubscribe();
    * ```
    */
   subscribe(eventType, callback) {
     if (typeof callback !== 'function') {
-      throw new Error('Callback must be a function');
+      throw new Error('❌ El callback debe ser una función');
     }
 
     if (!this.subscribers.has(eventType)) {
@@ -442,26 +423,22 @@ class PWAEventBus {
 
     this.subscribers.get(eventType).add(callback);
     this.log(
-      `Subscribed to event: ${eventType}. Total subscribers: ${
+      `📡 Suscrito al evento: ${eventType}. Total suscriptores: ${
         this.subscribers.get(eventType).size
       }`,
     );
 
-    // Return unsubscribe function
+    // Retornar función de desuscripción
     return () => {
       this.unsubscribe(eventType, callback);
     };
   }
 
   /**
-   * Cancels the subscription of a callback from a specific event type.
+   * ❌ Cancela la suscripción de un callback de un tipo de evento específico.
    *
-   * Removes the provided callback from the set of subscribers for the given event type.
-   * If no more subscribers remain for the event type after removal,
-   * the event type is removed from the internal subscribers map.
-   *
-   * @param {string} eventType - The event type to unsubscribe from
-   * @param {Function} callback - The callback to remove
+   * @param {string} eventType - El tipo de evento del que desuscribirse
+   * @param {Function} callback - El callback a remover
    */
   unsubscribe(eventType, callback) {
     const subscribers = this.subscribers.get(eventType);
@@ -469,69 +446,60 @@ class PWAEventBus {
     if (subscribers) {
       subscribers.delete(callback);
       this.log(
-        `Unsubscribed from event: ${eventType}. Remaining subscribers: ${subscribers.size}`,
+        `❌ Desuscrito del evento: ${eventType}. Suscriptores restantes: ${subscribers.size}`,
       );
 
-      // Clean up the Set if empty
+      // Limpiar el Set si está vacío
       if (subscribers.size === 0) {
         this.subscribers.delete(eventType);
-        this.log(`No subscribers for ${eventType}, removing group`);
+        this.log(`🗑️ No hay suscriptores para ${eventType}, removiendo grupo`);
       }
     }
   }
 
   // ========================================
-  // LOGGING AND DEBUGGING UTILITIES
+  // 📊 UTILIDADES DE LOGGING Y DEBUGGING
   // ========================================
 
   /**
-   * Logs an informational message to the console.
+   * Registra un mensaje informativo en la consola.
    *
    * @private
-   * @param {string} message - The message to log
-   * @param {*} [data=null] - Optional additional data
+   * @param {string} message - El mensaje a registrar
+   * @param {*} [data=null] - Datos adicionales opcionales
    */
   log(message, data = null) {
-    if (!this.DEBUG_MODE) return;
-
-    const timestamp = new Date().toISOString();
-    const additionalData = data ?? '';
-
-    console.log(`[PWAEventBus ${timestamp}] ${message}`, additionalData);
+    // Logging deshabilitado
+    return;
   }
 
   /**
-   * Logs an error message to the console.
+   * Registra un mensaje de error en la consola.
    *
    * @private
-   * @param {string} message - The error message
-   * @param {Error} [error=null] - Optional error object
+   * @param {string} message - El mensaje de error
+   * @param {Error} [error=null] - Objeto error opcional
    */
   logError(message, error = null) {
-    const timestamp = new Date().toISOString();
-    if (error) {
-      console.error(`[PWAEventBus ERROR ${timestamp}] ${message}`, error);
-    } else {
-      console.error(`[PWAEventBus ERROR ${timestamp}] ${message}`);
-    }
+    // Error logging deshabilitado
+    return;
   }
 
   /**
-   * Gets statistics about the current state of the EventBus.
+   * 📊 Obtiene estadísticas sobre el estado actual del EventBus.
+   * Útil para debugging y monitoreo del estado interno del event bus.
    *
-   * Useful for debugging and monitoring the internal state of the event bus.
-   *
-   * @returns {Object} Object with EventBus statistics
-   * @returns {number} returns.subscribersCount - Number of event types with subscribers
-   * @returns {number} returns.pendingRequestsCount - Number of pending requests
-   * @returns {number} returns.messageIdCounter - Current message ID counter
-   * @returns {string[]} returns.eventTypes - Array of subscribed event types
+   * @returns {Object} Objeto con estadísticas del EventBus
+   * @returns {number} returns.subscribersCount - Número de tipos de evento con suscriptores
+   * @returns {number} returns.pendingRequestsCount - Número de peticiones pendientes
+   * @returns {number} returns.messageIdCounter - Contador actual de ID de mensaje
+   * @returns {string[]} returns.eventTypes - Array de tipos de evento suscritos
    *
    * @example
    * ```javascript
    * const stats = eventBus.getStats();
-   * console.log(`Active subscribers: ${stats.subscribersCount}`);
-   * console.log(`Pending requests: ${stats.pendingRequestsCount}`);
+   * console.log(`Suscriptores activos: ${stats.subscribersCount}`);
+   * console.log(`Peticiones pendientes: ${stats.pendingRequestsCount}`);
    * ```
    */
   getStats() {
@@ -545,82 +513,99 @@ class PWAEventBus {
 }
 
 // ========================================
-// EVENT TYPES DEFINITION
+// 🏷️ DEFINICIÓN DE TIPOS DE EVENTOS
 // ========================================
 
 /**
- * Constants that define the available event types for communication
- * between the PWA and React Native.
+ * 🏷️ Constantes que definen los tipos de eventos disponibles para comunicación
+ * entre la PWA y React Native.
  *
- * Maintains synchronization with the types defined in the React Native application.
+ * Mantiene sincronización con los tipos definidos en la aplicación React Native.
+ *
+ * 💡 CATEGORÍAS DE EVENTOS:
+ * • 🌐 HTTP: Solicitudes web
+ * • 🚀 Inicialización: Eventos de startup
+ * • 🔐 Permisos: Solicitudes de permisos del sistema
+ * • 💾 Cache: Manejo de storage local
+ * • 📷 Multimedia: Cámara y archivos
+ * • 📍 Geolocalización: Ubicación y tracking
+ * • 📁 Archivos: Manejo del filesystem
+ * • 🔔 Notificaciones: Alerts y push notifications
+ * • 📱 Dispositivo: Info del hardware y sistema
+ * • 📳 Hápticos: Vibración y feedback
+ * • 🔗 Compartir: Funciones de sharing
+ * • 🎯 Personalizados: Eventos custom de la app
  */
 class EventTypes {
-  // === HTTP REQUESTS ===
+  // === 🌐 SOLICITUDES HTTP ===
   static HTTP_REQUEST = 'http_request';
 
-  // === INITIALIZATION EVENTS ===
+  // === 🚀 EVENTOS DE INICIALIZACIÓN ===
   static PWA_READY = 'pwa_ready';
   static NATIVE_READY = 'native_ready';
 
-  // === PERMISSIONS ===
+  // === 🔐 PERMISOS ===
   static CAMERA_PERMISSION_REQUEST = 'camera_permission_request';
   static LOCATION_PERMISSION_REQUEST = 'location_permission_request';
   static MICROPHONE_PERMISSION_REQUEST = 'microphone_permission_request';
   static STORAGE_PERMISSION_REQUEST = 'storage_permission_request';
   static CONTACTS_PERMISSION_REQUEST = 'contacts_permission_request';
 
-  // === CACHE ===
+  // === 💾 CACHE Y STORAGE ===
   static SET_IN_LOCAL_STORAGE = 'set_in_local_storage';
   static GET_FROM_LOCAL_STORAGE = 'get_from_local_storage';
   static DELETE_FROM_LOCAL_STORAGE = 'delete_from_local_storage';
   static CLEAR_LOCAL_STORAGE = 'clear_local_storage';
 
-  // === CAMERA AND MULTIMEDIA ===
+  // === 📷 CÁMARA Y MULTIMEDIA ===
   static TAKE_PHOTO = 'take_photo';
   static RECORD_VIDEO = 'record_video';
   static PICK_IMAGE = 'pick_image';
   static PICK_VIDEO = 'pick_video';
 
-  // === GEOLOCATION ===
+  // === 📍 GEOLOCALIZACIÓN ===
   static GET_LOCATION = 'get_location';
   static START_LOCATION_TRACKING = 'start_location_tracking';
   static STOP_LOCATION_TRACKING = 'stop_location_tracking';
   static LOCATION_UPDATE = 'location_update';
 
-  // === FILES AND STORAGE ===
+  // === 📁 ARCHIVOS Y STORAGE ===
   static SAVE_FILE = 'save_file';
   static READ_FILE = 'read_file';
   static DELETE_FILE = 'delete_file';
   static LIST_FILES = 'list_files';
 
-  // === NOTIFICATIONS ===
+  // === 🔔 NOTIFICACIONES ===
   static SEND_LOCAL_NOTIFICATION = 'send_local_notification';
   static REGISTER_PUSH_NOTIFICATIONS = 'register_push_notifications';
 
-  // === DEVICE ===
+  // === 📱 DISPOSITIVO ===
   static GET_DEVICE_INFO = 'get_device_info';
   static GET_BATTERY_STATUS = 'get_battery_status';
   static GET_NETWORK_STATUS = 'get_network_status';
 
-  // === VIBRATION AND HAPTICS ===
+  // === 📳 VIBRACIÓN Y HÁPTICOS ===
   static VIBRATE = 'vibrate';
   static HAPTIC_FEEDBACK = 'haptic_feedback';
 
-  // === SHARING ===
+  // === 🔗 COMPARTIR ===
   static SHARE_CONTENT = 'share_content';
   static SHARE_FILE = 'share_file';
 
-  // === CUSTOM EVENTS ===
+  // === 🎯 EVENTOS PERSONALIZADOS ===
   static CUSTOM_EVENT = 'custom_event';
   static PWA_CUSTOM_EVENT = 'pwa_custom_event';
 
+  // === 🧪 TESTING ===
   static TEST = 'test';
 }
 
 // ========================================
-// GLOBAL EXPOSURE
+// 🌍 EXPOSICIÓN GLOBAL
 // ========================================
 
-// Expose classes globally for use in the PWA
+// Exponer clases globalmente para uso en la PWA
 window.PWAEventBus = PWAEventBus;
 window.EventTypes = EventTypes;
+
+// Framework listo para usar (sin logs)

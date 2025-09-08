@@ -7,17 +7,13 @@ import {
   createErrorFromException,
   ErrorCode,
   StandardResponse,
+  PhotoProcessedData,
+  CameraActivatedData,
 } from '../types';
 import { useNativeCameraContext } from '../providers/native_camera_provider';
 
 type CameraPhotoBase64Request =
   IncomingEventPayloads[EventTypes.CAMERA_PHOTO_BASE64_PROCESS];
-
-// Tipo de datos para respuesta de procesamiento de foto
-interface PhotoProcessedData {
-  message: string;
-  processed: boolean;
-}
 
 /**
  * Executes camera photo base64 processing and returns a standardized response.
@@ -65,11 +61,11 @@ const executeCameraPhotoBase64Process = async ({
  * Executes take photo operation and returns a standardized response.
  */
 const executeTakePhoto = async (): Promise<
-  StandardResponse<{ activated: boolean }>
+  StandardResponse<CameraActivatedData>
 > => {
   try {
     // Activar la cámara (esto se maneja en el contexto)
-    const data = {
+    const data: CameraActivatedData = {
       activated: true,
     };
 

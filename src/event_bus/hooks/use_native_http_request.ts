@@ -8,6 +8,7 @@ import {
   createErrorFromException,
   ErrorCode,
   StandardResponse,
+  HttpResponseData,
 } from '../types';
 import {
   DEFAULT_TIMEOUT,
@@ -16,13 +17,6 @@ import {
 } from '../constants';
 
 type HttpRequest = IncomingEventPayloads[EventTypes.HTTP_REQUEST];
-
-// Tipo de datos para respuesta HTTP exitosa
-interface HttpResponseData {
-  status: number;
-  data: any;
-  headers?: Record<string, string>;
-}
 
 const buildAxiosConfig = (request: HttpRequest) => {
   const baseConfig = {

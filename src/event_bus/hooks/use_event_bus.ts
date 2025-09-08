@@ -124,6 +124,7 @@ class EventBus {
    */
   private async handleIncomingEvent(message: EventMessage): Promise<void> {
     const subscribers = this.subscribers.get(message.type);
+
     if (subscribers && subscribers.size > 0) {
       try {
         // Ejecutar todos los callbacks suscritos al evento

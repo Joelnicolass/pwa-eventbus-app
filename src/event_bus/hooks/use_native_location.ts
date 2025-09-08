@@ -8,6 +8,7 @@ import {
   createErrorFromException,
   ErrorCode,
   StandardResponse,
+  LocationData,
 } from '../types';
 import {
   DEFAULT_GEOLOCATION_TIMEOUT,
@@ -34,17 +35,6 @@ type StartTrackingRequest =
   IncomingEventPayloads[EventTypes.START_LOCATION_TRACKING];
 type StopTrackingRequest =
   IncomingEventPayloads[EventTypes.STOP_LOCATION_TRACKING];
-
-// Tipos de datos específicos para cada operación
-interface LocationData {
-  latitude: number;
-  longitude: number;
-  accuracy?: number;
-  altitude?: number;
-  speed?: number;
-  heading?: number;
-  timestamp: number;
-}
 
 /**
  * Convierte una posición de geolocalización a datos estandarizados
