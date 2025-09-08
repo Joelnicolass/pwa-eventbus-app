@@ -6,15 +6,20 @@ import {
   useCameraPermission,
   useCodeScanner,
 } from 'react-native-vision-camera';
-import { useNativeCameraProvider } from '../../providers/native_camera_provider';
+import * as RNFS from '@dr.pogodin/react-native-fs';
+import { useNativeCameraContext } from '../../providers/native_camera_provider';
+import { useGlobalEventBus } from '../../providers/event_bus_provider';
+import { EventTypes } from '../../types';
 
 export const useVisionCamera = () => {
+  const eventBus = useGlobalEventBus();
+
+  const camera = useRef<Camera>(null);
   const device = useCameraDevice('back');
   const { hasPermission, requestPermission } = useCameraPermission();
-  const camera = useRef<Camera>(null);
   const [qrCodeDetected, setQrCodeDetected] = useState<boolean>(false);
 
-  const { setIsActive } = useNativeCameraProvider();
+  const { setIsActive } = useNativeCameraContext();
 
   useEffect(() => {
     if (!hasPermission) {
@@ -34,6 +39,7 @@ export const useVisionCamera = () => {
     onCodeScanned: codes => {
       if (qrCodeDetected) return;
       setQrCodeDetected(true);
+
       Alert.alert('Código escaneado', codes.map(c => c.value).join(', '), [
         {
           text: 'Confirmar',
@@ -54,10 +60,17 @@ export const useVisionCamera = () => {
 
   const takePhoto = async () => {
     try {
+      if (!eventBus) return;
       if (camera.current) {
         const photo = await camera.current.takePhoto({ flash: 'off' });
-        console.log('Foto tomada:', photo.path);
-        Alert.alert('Foto tomada', `Guardada en: ${photo.path}`);
+
+        const base64String = await RNFS.readFile(photo.path, 'base64');
+
+        eventBus.emit(EventTypes.CAMERA_PHOTO_BASE64_PROCESS, {
+          base64: `data:image/jpeg;base64,${base64String}`,
+          width: photo.width,
+          height: photo.height,
+        });
       }
     } catch (error) {
       console.error('Error al tomar la foto:', error);
@@ -65,9 +78,7 @@ export const useVisionCamera = () => {
     }
   };
 
-  const goBack = () => {
-    setIsActive(false);
-  };
+  const goBack = () => setIsActive(false);
 
   return {
     camera,

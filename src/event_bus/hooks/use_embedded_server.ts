@@ -101,9 +101,7 @@ export const useEmbeddedServer = (shouldStart: boolean = false) => {
   }, [stopServer, startServer]);
 
   useEffect(() => {
-    if (shouldStart && !isInitialized.current) {
-      startServer();
-    }
+    if (shouldStart && !isInitialized.current) startServer();
   }, [shouldStart, startServer]);
 
   useEffect(() => {

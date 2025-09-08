@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import { StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNativeServices } from '../../event_bus/hooks/use_native_services';
 import { useNativePermissions } from '../../event_bus/hooks/use_native_permissions';
@@ -9,12 +9,11 @@ import NativeCamera from '../../event_bus/components/native_camera';
 import NativeWebView, {
   NativeWebViewRef,
 } from '../../event_bus/components/native_web_view';
-import { useNativeCameraProvider } from '../../event_bus/providers/native_camera_provider';
+import { useNativeCameraContext } from '../../event_bus/providers/native_camera_provider';
 import Loader from '../loader';
 
 export default function HomeScreen() {
-  const { isActive: isActiveCam, setIsActive: setIsActiveCam } =
-    useNativeCameraProvider();
+  const { isActive: isActiveCam } = useNativeCameraContext();
 
   const { isLoading: permissionsLoading, allPermissionsGranted } =
     useNativePermissions();
@@ -37,13 +36,6 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity
-        style={styles.testButton}
-        onPress={() => setIsActiveCam(true)}
-      >
-        <Text style={styles.testButtonText}>camera on</Text>
-      </TouchableOpacity>
-
       <NativeWebView ref={webViewRef} url={url} />
     </SafeAreaView>
   );

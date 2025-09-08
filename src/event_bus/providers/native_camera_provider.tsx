@@ -31,7 +31,7 @@ export const NativeCameraProvider = ({
   );
 };
 
-export const useNativeCameraProvider = () => {
+export const useNativeCameraContext = () => {
   const context = useContext(NativeCameraContext);
 
   if (!context)
