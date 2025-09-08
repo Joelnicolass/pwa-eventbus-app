@@ -4,28 +4,27 @@ import { useEffect } from 'react';
 import {
   EventTypes,
   IncomingEventPayloads,
-  OutgoingEventResponses,
+  createSuccessResponse,
+  createErrorFromException,
+  ErrorCode,
+  StandardResponse,
 } from '../types';
 import {
   DEFAULT_TIMEOUT,
   DEFAULT_RESPONSE_TYPE,
   METHODS_WITH_BODY,
-  StatusCode,
 } from '../constants';
 
 type HttpRequest = IncomingEventPayloads[EventTypes.HTTP_REQUEST];
-type HttpResponse = OutgoingEventResponses[EventTypes.HTTP_REQUEST];
+
+// Tipo de datos para respuesta HTTP exitosa
+interface HttpResponseData {
+  status: number;
+  data: any;
+  headers?: Record<string, string>;
+}
 
 const buildAxiosConfig = (request: HttpRequest) => {
-  /**
-   * Configuration object for an HTTP request.
-   *
-   * @property {string} method - The HTTP method to use for the request (e.g., 'GET', 'POST').
-   * @property {string} url - The URL to which the request is sent.
-   * @property {Record<string, string>} headers - An object representing the HTTP headers to include with the request.
-   * @property {number} timeout - The maximum time in milliseconds to wait for the request to complete.
-   * @property {string} responseType - The type of data expected in the response (e.g., 'json', 'text').
-   */
   const baseConfig = {
     method: request.method,
     url: request.url,
@@ -42,42 +41,38 @@ const buildAxiosConfig = (request: HttpRequest) => {
 };
 
 /**
- * Creates a successful HTTP response object with the provided data.
- *
- * @param data - The payload to include in the response.
- * @returns An `HttpResponse` object with a status of `StatusCode.OK` and the given data.
- */
-const createSuccessResponse = (data: unknown): HttpResponse => ({
-  status: StatusCode.OK,
-  data,
-});
-
-/**
- * Crea una respuesta de error estandarizada
- */
-const createErrorResponse = (error: unknown): HttpResponse => ({
-  status: StatusCode.INTERNAL_SERVER_ERROR,
-  data: {
-    error: error instanceof Error ? error.message : String(error),
-  },
-});
-
-/**
  * Executes an HTTP request using Axios and returns a standardized response.
- *
- * @param request - The HTTP request configuration object.
- * @returns A promise that resolves to an `HttpResponse` containing either the successful response data
- * or an error response if the request fails.
  */
 const executeHttpRequest = async (
   request: HttpRequest,
-): Promise<HttpResponse> => {
+): Promise<StandardResponse<HttpResponseData>> => {
   try {
     const config = buildAxiosConfig(request);
-    const { data } = await axios(config);
-    return createSuccessResponse(data);
+    const response = await axios(config);
+
+    const data: HttpResponseData = {
+      status: response.status,
+      data: response.data,
+      headers: response.headers as Record<string, string>,
+    };
+
+    return createSuccessResponse(EventTypes.HTTP_REQUEST, data);
   } catch (error) {
-    return createErrorResponse(error);
+    console.error('HTTP request failed:', error);
+
+    // Determinar el tipo de error específico
+    let errorCode = ErrorCode.HTTP_REQUEST_FAILED;
+    if (axios.isAxiosError(error)) {
+      if (error.code === 'ECONNABORTED') {
+        errorCode = ErrorCode.HTTP_TIMEOUT;
+      } else if (error.response?.status) {
+        errorCode = ErrorCode.HTTP_REQUEST_FAILED;
+      } else {
+        errorCode = ErrorCode.HTTP_NETWORK_ERROR;
+      }
+    }
+
+    return createErrorFromException(EventTypes.HTTP_REQUEST, error, errorCode);
   }
 };
 

@@ -2,6 +2,19 @@
 export { EventTypes } from './event-types';
 export type { GenericResponse } from './common-types';
 
+// === EXPORTAR RESPUESTAS ESTANDARIZADAS ===
+export type {
+  StandardResponse,
+  SuccessResponse,
+  ErrorResponse,
+} from './standard-responses';
+export {
+  ErrorCode,
+  createSuccessResponse,
+  createErrorResponse,
+  createErrorFromException,
+} from './standard-responses';
+
 // === EXPORTAR TODAS LAS INTERFACES PRINCIPALES ===
 export type {
   OutgoingEventPayloads,
@@ -31,14 +44,15 @@ export type {
   TakePhotoRequest,
   TakePhotoResponse,
   CameraPhotoBase64Data,
+  PhotoProcessedData,
+  CameraActivatedData,
 } from './camera-types';
 
 export type {
   LocationCoordinates,
   GetLocationRequest,
   LocationTrackingRequest,
-  LocationResponse,
-  LocationUpdateResponse,
+  LocationData,
 } from './geolocation-types';
 
 export type {
@@ -46,9 +60,10 @@ export type {
   GetStorageRequest,
   DeleteStorageRequest,
   ClearStorageRequest,
-  StorageSuccessResponse,
-  GetStorageResponse,
+  GetStorageData,
   SaveFileRequest,
 } from './storage-types';
 
-export type { HttpRequestEvent, HttpResponse } from './http-types';
+export type { HttpRequestEvent, HttpResponseData } from './http-types';
+
+export type { TestEventData } from './custom-types';

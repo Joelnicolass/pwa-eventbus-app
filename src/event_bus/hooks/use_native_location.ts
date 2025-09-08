@@ -4,7 +4,10 @@ import Geolocation from '@react-native-community/geolocation';
 import {
   EventTypes,
   IncomingEventPayloads,
-  OutgoingEventResponses,
+  createSuccessResponse,
+  createErrorFromException,
+  ErrorCode,
+  StandardResponse,
 } from '../types';
 import {
   DEFAULT_GEOLOCATION_TIMEOUT,
@@ -31,22 +34,24 @@ type StartTrackingRequest =
   IncomingEventPayloads[EventTypes.START_LOCATION_TRACKING];
 type StopTrackingRequest =
   IncomingEventPayloads[EventTypes.STOP_LOCATION_TRACKING];
-type GetLocationResponse = OutgoingEventResponses[EventTypes.GET_LOCATION];
-type StartTrackingResponse =
-  OutgoingEventResponses[EventTypes.START_LOCATION_TRACKING];
-type StopTrackingResponse =
-  OutgoingEventResponses[EventTypes.STOP_LOCATION_TRACKING];
+
+// Tipos de datos específicos para cada operación
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  altitude?: number;
+  speed?: number;
+  heading?: number;
+  timestamp: number;
+}
 
 /**
- * Creates a successful location response object.
- *
- * @param position - The geolocation position object.
- * @returns A GetLocationResponse object with success: true and location data.
+ * Convierte una posición de geolocalización a datos estandarizados
  */
-const createLocationSuccessResponse = (
+const convertPositionToLocationData = (
   position: GeolocationPosition,
-): GetLocationResponse => ({
-  success: true,
+): LocationData => ({
   latitude: position.coords.latitude,
   longitude: position.coords.longitude,
   accuracy: position.coords.accuracy,
@@ -57,59 +62,11 @@ const createLocationSuccessResponse = (
 });
 
 /**
- * Creates a standardized location error response.
- *
- * @param error - The error that occurred.
- * @returns A GetLocationResponse object with success: false and error details.
- */
-const createLocationErrorResponse = (error: unknown): GetLocationResponse => ({
-  success: false,
-  latitude: 0,
-  longitude: 0,
-  timestamp: Date.now(),
-  error: error instanceof Error ? error.message : String(error),
-});
-
-/**
- * Creates a successful tracking start response object.
- *
- * @returns A StartTrackingResponse object with success: true.
- */
-const createStartTrackingSuccessResponse = (): StartTrackingResponse => ({
-  success: true,
-});
-
-/**
- * Creates a successful tracking stop response object.
- *
- * @returns A StopTrackingResponse object with success: true.
- */
-const createStopTrackingSuccessResponse = (): StopTrackingResponse => ({
-  success: true,
-});
-
-/**
- * Creates a standardized tracking error response.
- *
- * @param error - The error that occurred.
- * @returns A tracking response object with success: false and error details.
- */
-const createTrackingErrorResponse = (
-  error: unknown,
-): StartTrackingResponse | StopTrackingResponse => ({
-  success: false,
-  error: error instanceof Error ? error.message : String(error),
-});
-
-/**
  * Executes a get current location operation and returns a standardized response.
- *
- * @param request - The location request configuration object.
- * @returns A promise that resolves to a response containing location data or error details.
  */
 const executeGetLocation = async (
   request: GetLocationRequest,
-): Promise<GetLocationResponse> => {
+): Promise<StandardResponse<LocationData>> => {
   return new Promise(resolve => {
     try {
       const options = {
@@ -120,47 +77,46 @@ const executeGetLocation = async (
 
       Geolocation.getCurrentPosition(
         position => {
-          resolve(createLocationSuccessResponse(position));
+          const data = convertPositionToLocationData(position);
+          resolve(createSuccessResponse(EventTypes.GET_LOCATION, data));
         },
         error => {
           console.error('Error getting current location:', error);
-          resolve(createLocationErrorResponse(error));
+          let errorCode = ErrorCode.LOCATION_UNAVAILABLE;
+
+          // Mapear códigos de error específicos
+          if (error.code === 1)
+            errorCode = ErrorCode.LOCATION_PERMISSION_DENIED;
+          else if (error.code === 2) errorCode = ErrorCode.LOCATION_UNAVAILABLE;
+          else if (error.code === 3) errorCode = ErrorCode.LOCATION_TIMEOUT;
+
+          resolve(
+            createErrorFromException(EventTypes.GET_LOCATION, error, errorCode),
+          );
         },
         options,
       );
     } catch (error) {
       console.error('Error in executeGetLocation:', error);
-      resolve(createLocationErrorResponse(error));
+      resolve(
+        createErrorFromException(
+          EventTypes.GET_LOCATION,
+          error,
+          ErrorCode.LOCATION_UNAVAILABLE,
+        ),
+      );
     }
   });
 };
 
 /**
- * React hook that subscribes to location events on the provided EventBus and
- * performs native location operations using React Native Geolocation. Handles get location,
- * start tracking, and stop tracking operations with proper error handling and standardized responses.
- *
- * On receiving location events, executes the appropriate operation and returns a response
- * object containing success status, location data, and error information if applicable.
- *
- * Supported operations:
- * - GET_LOCATION: Gets the current device location once
- * - START_LOCATION_TRACKING: Starts continuous location tracking
- * - STOP_LOCATION_TRACKING: Stops continuous location tracking
- *
- * The subscriptions are automatically cleaned up when the component unmounts or when the
- * eventBus changes. Location tracking is also stopped on cleanup to prevent memory leaks.
- *
- * Note: This implementation uses React Native Geolocation API which requires location
- * permissions to be granted by the user.
- *
- * @param eventBus - The EventBus instance to subscribe to location events. If null, no subscription is made.
+ * React hook que maneja eventos de geolocalización usando respuestas estandarizadas
  */
 export const useNativeLocation = (eventBus: EventBus | null) => {
   const watchIdRef = useRef<number | null>(null);
 
   const executeStartLocationTracking = useCallback(
-    async (request: StartTrackingRequest): Promise<StartTrackingResponse> => {
+    async (request: StartTrackingRequest): Promise<StandardResponse<null>> => {
       try {
         // Si ya hay un tracking activo, lo detenemos primero
         if (watchIdRef.current !== null) {
@@ -179,9 +135,13 @@ export const useNativeLocation = (eventBus: EventBus | null) => {
             position => {
               // Emitir evento de actualización de ubicación
               if (eventBus) {
-                const locationUpdate = createLocationSuccessResponse(position);
+                const locationData = convertPositionToLocationData(position);
+                const updateResponse = createSuccessResponse(
+                  EventTypes.LOCATION_UPDATE,
+                  locationData,
+                );
                 eventBus
-                  .emit(EventTypes.LOCATION_UPDATE, locationUpdate)
+                  .emit(EventTypes.LOCATION_UPDATE, updateResponse)
                   .catch(error => {
                     console.error(
                       'Error enviando actualización de ubicación:',
@@ -193,32 +153,51 @@ export const useNativeLocation = (eventBus: EventBus | null) => {
             error => {
               console.error('Error in location tracking:', error);
               watchIdRef.current = null;
-              resolve(createTrackingErrorResponse(error));
+              let errorCode = ErrorCode.LOCATION_UNAVAILABLE;
+              if (error.code === 1)
+                errorCode = ErrorCode.LOCATION_PERMISSION_DENIED;
+              resolve(
+                createErrorFromException(
+                  EventTypes.START_LOCATION_TRACKING,
+                  error,
+                  errorCode,
+                ),
+              );
             },
             options,
           );
 
-          resolve(createStartTrackingSuccessResponse());
+          resolve(
+            createSuccessResponse(EventTypes.START_LOCATION_TRACKING, null),
+          );
         });
       } catch (error) {
         console.error('Error starting location tracking:', error);
-        return createTrackingErrorResponse(error);
+        return createErrorFromException(
+          EventTypes.START_LOCATION_TRACKING,
+          error,
+          ErrorCode.LOCATION_UNAVAILABLE,
+        );
       }
     },
     [eventBus],
   );
 
   const executeStopLocationTracking = useCallback(
-    async (_request: StopTrackingRequest): Promise<StopTrackingResponse> => {
+    async (_request: StopTrackingRequest): Promise<StandardResponse<null>> => {
       try {
         if (watchIdRef.current !== null) {
           Geolocation.clearWatch(watchIdRef.current);
           watchIdRef.current = null;
         }
-        return createStopTrackingSuccessResponse();
+        return createSuccessResponse(EventTypes.STOP_LOCATION_TRACKING, null);
       } catch (error) {
         console.error('Error stopping location tracking:', error);
-        return createTrackingErrorResponse(error);
+        return createErrorFromException(
+          EventTypes.STOP_LOCATION_TRACKING,
+          error,
+          ErrorCode.LOCATION_UNAVAILABLE,
+        );
       }
     },
     [],
@@ -243,7 +222,6 @@ export const useNativeLocation = (eventBus: EventBus | null) => {
     );
 
     return () => {
-      // Limpiar suscripciones
       unsubscribeGetLocation();
       unsubscribeStartTracking();
       unsubscribeStopTracking();

@@ -1,4 +1,5 @@
 import { EventTypes } from './event-types';
+import { StandardResponse } from './standard-responses';
 import {
   GenericResponse,
   InitializationEvent,
@@ -8,6 +9,13 @@ import {
   ShareContentRequest,
   NotificationRequest,
 } from './common-types';
+
+// Datos específicos para respuestas de eventos personalizados
+export interface TestEventData {
+  message: string;
+  receivedData: any;
+  processedAt: string;
+}
 
 // === INTERFACES PARA EVENTOS PERSONALIZADOS ===
 export interface CustomOutgoingPayloads {
@@ -29,16 +37,16 @@ export interface CustomIncomingPayloads {
 }
 
 export interface CustomIncomingResponses {
-  [EventTypes.PWA_READY]: InitializationResponse;
-  [EventTypes.NATIVE_READY]: InitializationResponse;
-  [EventTypes.CUSTOM_EVENT]: GenericResponse;
-  [EventTypes.PWA_CUSTOM_EVENT]: GenericResponse;
+  [EventTypes.PWA_READY]: StandardResponse<InitializationResponse>;
+  [EventTypes.NATIVE_READY]: StandardResponse<InitializationResponse>;
+  [EventTypes.CUSTOM_EVENT]: StandardResponse<GenericResponse>;
+  [EventTypes.PWA_CUSTOM_EVENT]: StandardResponse<GenericResponse>;
 }
 
 export interface CustomOutgoingResponses {
-  [EventTypes.PWA_READY]: InitializationResponse;
-  [EventTypes.NATIVE_READY]: InitializationResponse;
-  [EventTypes.CUSTOM_EVENT]: GenericResponse;
-  [EventTypes.PWA_CUSTOM_EVENT]: GenericResponse;
-  [EventTypes.TEST]: void;
+  [EventTypes.PWA_READY]: StandardResponse<InitializationResponse>;
+  [EventTypes.NATIVE_READY]: StandardResponse<InitializationResponse>;
+  [EventTypes.CUSTOM_EVENT]: StandardResponse<GenericResponse>;
+  [EventTypes.PWA_CUSTOM_EVENT]: StandardResponse<GenericResponse>;
+  [EventTypes.TEST]: StandardResponse<TestEventData>;
 }

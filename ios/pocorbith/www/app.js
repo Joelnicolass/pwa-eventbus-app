@@ -302,7 +302,6 @@ eventBus.subscribe('custom_event', async payload => {
   )}`;
 
   // Responder con otro custom event
-
   const res = await eventBus.emit(EVENT.HTTP_REQUEST, {
     method: 'GET',
     url: 'https://jsonplaceholder.typicode.com/users/1',
@@ -336,11 +335,17 @@ customEventBtn.addEventListener('click', async () => {
     });
 
     log('Respuesta del custom event recibida', response);
-    customEventResult.textContent = `Respuesta de React Native:\n${JSON.stringify(
-      response,
-      null,
-      2,
-    )}`;
+
+    // Manejar respuesta estandarizada
+    if (response.success) {
+      customEventResult.textContent = `✅ Respuesta exitosa de React Native:\n${JSON.stringify(
+        response.data,
+        null,
+        2,
+      )}`;
+    } else {
+      customEventResult.textContent = `❌ Error de React Native:\nCódigo: ${response.errorCode}\nMensaje: ${response.errorMessage}`;
+    }
   } catch (error) {
     log('Error enviando custom event', error);
     customEventResult.textContent = `Error: ${error.message}`;
@@ -386,35 +391,39 @@ let isTracking = false;
 
 // Función para formatear datos de ubicación
 function formatLocationData(locationResponse) {
-  if (!locationResponse.success) {
-    return `Error: ${locationResponse.error || 'Error desconocido'}`;
+  debugLog('🔍 Formateando datos de ubicación:', locationResponse);
+  
+  // Verificar si es una respuesta estandarizada
+  if (locationResponse.success !== undefined) {
+    if (!locationResponse.success) {
+      return `Error: ${locationResponse.errorMessage || 'Error desconocido'}`;
+    }
+    
+    // Usar los datos de la respuesta estandarizada
+    const data = locationResponse.data;
+    debugLog('🔍 Datos extraídos de la respuesta:', data);
+    
+    if (!data) {
+      return 'Error: No hay datos de ubicación disponibles';
+    }
+    
+    return `Ubicación obtenida exitosamente:
+Latitud: ${data.latitude || 'N/A'}°
+Longitud: ${data.longitude || 'N/A'}°
+Precisión: ${data.accuracy ? data.accuracy.toFixed(2) + ' metros' : 'N/A'}
+Altitud: ${data.altitude ? data.altitude.toFixed(2) + ' metros' : 'N/A'}
+Velocidad: ${data.speed ? data.speed.toFixed(2) + ' m/s' : 'N/A'}
+Dirección: ${data.heading ? data.heading.toFixed(2) + '°' : 'N/A'}
+Timestamp: ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}`;
   }
 
-  return `Ubicación obtenida exitosamente:
-Latitud: ${locationResponse.latitude}°
-Longitud: ${locationResponse.longitude}°
-Precisión: ${
-    locationResponse.accuracy
-      ? locationResponse.accuracy.toFixed(2) + ' metros'
-      : 'N/A'
-  }
-Altitud: ${
-    locationResponse.altitude
-      ? locationResponse.altitude.toFixed(2) + ' metros'
-      : 'N/A'
-  }
-Velocidad: ${
-    locationResponse.speed ? locationResponse.speed.toFixed(2) + ' m/s' : 'N/A'
-  }
-Dirección: ${
-    locationResponse.heading ? locationResponse.heading.toFixed(2) + '°' : 'N/A'
-  }
-Timestamp: ${new Date(locationResponse.timestamp).toLocaleString()}`;
+  // Formato antiguo (fallback)
+  return `Error: ${locationResponse.error || 'Error desconocido'}`;
 }
 
 // Obtener ubicación actual
 getLocationBtn.addEventListener('click', async () => {
-  log('Solicitando ubicación actual...');
+  debugLog('🗺️ Solicitando ubicación', 'Iniciando...');
   locationData.textContent = 'Obteniendo ubicación...';
 
   try {
@@ -424,10 +433,17 @@ getLocationBtn.addEventListener('click', async () => {
       maximumAge: 300000,
     });
 
-    log('Respuesta de geolocalización recibida', response);
-    locationData.textContent = formatLocationData(response);
+    debugLog('🗺️ Respuesta recibida', response);
+
+    // Manejar respuesta estandarizada
+    if (response && response.success) {
+      locationData.textContent = formatLocationData(response);
+    } else {
+      debugLog('❌ Error en ubicación', response);
+      locationData.textContent = `❌ Error obteniendo ubicación:\nCódigo: ${response?.errorCode || 'N/A'}\nMensaje: ${response?.errorMessage || 'Error desconocido'}`;
+    }
   } catch (error) {
-    log('Error obteniendo ubicación', error);
+    debugLog('❌ Excepción ubicación', error);
     locationData.textContent = `Error: ${error.message}`;
   }
 });
@@ -446,14 +462,15 @@ startTrackingBtn.addEventListener('click', async () => {
 
     log('Respuesta de inicio de seguimiento', response);
 
+    // Manejar respuesta estandarizada
     if (response.success) {
       isTracking = true;
       startTrackingBtn.disabled = true;
       stopTrackingBtn.disabled = false;
       trackingData.textContent =
-        'Seguimiento activo - Esperando actualizaciones de ubicación...';
+        '✅ Seguimiento activo - Esperando actualizaciones de ubicación...';
     } else {
-      trackingData.textContent = `Error iniciando seguimiento: ${response.error}`;
+      trackingData.textContent = `❌ Error iniciando seguimiento:\nCódigo: ${response.errorCode}\nMensaje: ${response.errorMessage}`;
     }
   } catch (error) {
     log('Error iniciando seguimiento', error);
@@ -469,10 +486,29 @@ document.body.appendChild(testEventBtn);
 
 // área para mostrar resultados del evento de test
 testEventBtn.addEventListener('click', async () => {
-  eventBus.emit('test', {
-    data: 'Test',
-    data2: 'Tobi se la come',
-  });
+  try {
+    const response = await eventBus.emit('test', {
+      data: 'Test',
+      data2: 'Datos de prueba desde PWA',
+      timestamp: Date.now(),
+    });
+
+    log('Respuesta del evento TEST recibida', response);
+
+    // Manejar respuesta estandarizada
+    if (response.success) {
+      customEventResult.textContent = `✅ Evento TEST procesado exitosamente:\n${JSON.stringify(
+        response.data,
+        null,
+        2,
+      )}`;
+    } else {
+      customEventResult.textContent = `❌ Error en evento TEST:\nCódigo: ${response.errorCode}\nMensaje: ${response.errorMessage}`;
+    }
+  } catch (error) {
+    log('Error enviando evento TEST', error);
+    customEventResult.textContent = `Error: ${error.message}`;
+  }
 });
 
 // Detener seguimiento de ubicación
@@ -485,13 +521,14 @@ stopTrackingBtn.addEventListener('click', async () => {
 
     log('Respuesta de detener seguimiento', response);
 
+    // Manejar respuesta estandarizada
     if (response.success) {
       isTracking = false;
       startTrackingBtn.disabled = false;
       stopTrackingBtn.disabled = true;
-      trackingData.textContent = 'Seguimiento detenido.';
+      trackingData.textContent = '✅ Seguimiento detenido exitosamente.';
     } else {
-      trackingData.textContent = `Error deteniendo seguimiento: ${response.error}`;
+      trackingData.textContent = `❌ Error deteniendo seguimiento:\nCódigo: ${response.errorCode}\nMensaje: ${response.errorMessage}`;
     }
   } catch (error) {
     log('Error deteniendo seguimiento', error);
@@ -504,12 +541,28 @@ eventBus.subscribe('location_update', async payload => {
   log('Actualización de ubicación recibida', payload);
 
   if (isTracking) {
-    trackingData.textContent = `Seguimiento activo - Última actualización:
+    // Verificar si es respuesta estandarizada
+    if (payload.success !== undefined) {
+      if (payload.success) {
+        trackingData.textContent = `Seguimiento activo - Última actualización:
 ${formatLocationData(payload)}`;
+      } else {
+        trackingData.textContent = `❌ Error en actualización:\nCódigo: ${payload.errorCode}\nMensaje: ${payload.errorMessage}`;
+      }
+    } else {
+      // Formato anterior (fallback)
+      trackingData.textContent = `Seguimiento activo - Última actualización:
+${formatLocationData(payload)}`;
+    }
   }
 
-  // No necesitamos devolver una respuesta para este evento
-  return { received: true };
+  // Devolver respuesta estandarizada
+  return {
+    success: true,
+    data: { received: true },
+    event: 'location_update',
+    timestamp: Date.now(),
+  };
 });
 
 // Manejar clic para guardar en storage
@@ -520,7 +573,7 @@ saveStorageBtn.addEventListener('click', async () => {
     return;
   }
 
-  log('Guardando en storage:', text);
+  debugLog('💾 Guardando storage', { key: 'pwa_saved_text', value: text });
 
   try {
     const response = await eventBus.emit(EVENT.SET_IN_LOCAL_STORAGE, {
@@ -528,42 +581,128 @@ saveStorageBtn.addEventListener('click', async () => {
       value: text,
     });
 
-    log('Respuesta del guardado en storage', response);
-    storageResult.textContent = `Guardado exitoso:\n${JSON.stringify(
-      response,
-      null,
-      2,
-    )}`;
+    debugLog('💾 Respuesta storage SET', response);
 
-    // Limpiar input
-    storageInput.value = '';
+    // Manejar respuesta estandarizada
+    if (response && response.success) {
+      storageResult.textContent = `✅ Guardado exitosamente:\nTimestamp: ${new Date(
+        response.timestamp,
+      ).toLocaleString()}`;
+      storageInput.value = ''; // Limpiar input solo si fue exitoso
+    } else {
+      debugLog('❌ Error guardando', response);
+      storageResult.textContent = `❌ Error guardando:\nCódigo: ${response?.errorCode || 'N/A'}\nMensaje: ${response?.errorMessage || 'Error desconocido'}`;
+    }
   } catch (error) {
-    log('Error guardando en storage', error);
+    debugLog('❌ Excepción storage SET', error);
     storageResult.textContent = `Error: ${error.message}`;
   }
 });
 
 // Al cargar, intentar leer valor guardado
 window.addEventListener('load', async () => {
-  try {
-    const response = await eventBus.emit(EVENT.GET_FROM_LOCAL_STORAGE, {
-      key: 'pwa_saved_text',
-      requestId: 'initial_load',
-    });
+  // Esperar un poco para que React Native esté listo
+  setTimeout(async () => {
+    try {
+      debugLog('💾 Leyendo storage inicial', 'Iniciando...');
+      
+      const response = await eventBus.emit(EVENT.GET_FROM_LOCAL_STORAGE, {
+        key: 'pwa_saved_text',
+        requestId: 'initial_load',
+      });
 
-    log('Valor leído del storage al cargar', response);
+      debugLog('💾 Respuesta storage GET', response);
 
-    if (response.value) {
-      storageResult.textContent = `Valor en storage:\n${JSON.stringify(
-        response,
-        null,
-        2,
-      )}`;
-    } else {
-      storageResult.textContent = 'No hay valor guardado en storage.';
+      // Manejar respuesta estandarizada
+      if (response && response.success) {
+        const data = response.data;
+        debugLog('💾 Data extraída', data);
+        
+        if (data && data.value !== null && data.value !== undefined) {
+          storageResult.textContent = `✅ Valor encontrado en storage:\n"${data.value}"\nKey: ${data.key}\nRequestId: ${data.requestId}`;
+        } else {
+          storageResult.textContent = 'ℹ️ No hay valor guardado en storage.';
+        }
+      } else {
+        debugLog('❌ Error leyendo storage', response);
+        storageResult.textContent = `❌ Error leyendo storage:\nCódigo: ${response?.errorCode || 'N/A'}\nMensaje: ${response?.errorMessage || 'Error desconocido'}`;
+      }
+    } catch (error) {
+      debugLog('❌ Excepción storage GET', error);
+      storageResult.textContent = `Error: ${error.message}`;
     }
-  } catch (error) {
-    log('Error leyendo desde storage al cargar', error);
-    storageResult.textContent = `Error: ${error.message}`;
-  }
+  }, 2000); // Esperar 2 segundos para que React Native esté completamente listo
 });
+
+// === DEBUGGING EN PANTALLA ===
+// Crear un área de debug en la pantalla
+const debugArea = document.createElement('div');
+debugArea.id = 'debug-area';
+debugArea.style.cssText = `
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 300px;
+  background: #000;
+  color: #0f0;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 10px;
+  border: 1px solid #333;
+  z-index: 9999;
+  max-height: 200px;
+  overflow-y: auto;
+`;
+document.body.appendChild(debugArea);
+
+function debugLog(message, data = null) {
+  console.log(`[PWA Debug] ${message}`, data || '');
+  
+  // También mostrar en pantalla
+  const logEntry = document.createElement('div');
+  logEntry.style.marginBottom = '5px';
+  logEntry.innerHTML = `<strong>${message}</strong><br>${data ? JSON.stringify(data, null, 2) : ''}`;
+  debugArea.appendChild(logEntry);
+  
+  // Scroll automático al final
+  debugArea.scrollTop = debugArea.scrollHeight;
+  
+  // Limitar a 10 entradas
+  if (debugArea.children.length > 10) {
+    debugArea.removeChild(debugArea.firstChild);
+  }
+}
+
+// Función para formatear datos de ubicación
+function formatLocationData(locationResponse) {
+  debugLog('📍 Formateando ubicación', locationResponse);
+  
+  // Verificar si es una respuesta estandarizada
+  if (locationResponse && typeof locationResponse === 'object' && locationResponse.success !== undefined) {
+    if (!locationResponse.success) {
+      debugLog('❌ Error en respuesta ubicación', locationResponse);
+      return `Error: ${locationResponse.errorMessage || 'Error desconocido'}`;
+    }
+    
+    // Usar los datos de la respuesta estandarizada
+    const data = locationResponse.data;
+    debugLog('📍 Datos extraídos', data);
+    
+    if (!data) {
+      return 'Error: No hay datos de ubicación disponibles';
+    }
+    
+    return `Ubicación obtenida exitosamente:
+Latitud: ${data.latitude || 'N/A'}°
+Longitud: ${data.longitude || 'N/A'}°
+Precisión: ${data.accuracy ? data.accuracy.toFixed(2) + ' metros' : 'N/A'}
+Altitud: ${data.altitude ? data.altitude.toFixed(2) + ' metros' : 'N/A'}
+Velocidad: ${data.speed ? data.speed.toFixed(2) + ' m/s' : 'N/A'}
+Dirección: ${data.heading ? data.heading.toFixed(2) + '°' : 'N/A'}
+Timestamp: ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}`;
+  }
+
+  // Si no es respuesta estandarizada, mostrar como está
+  debugLog('📍 Formato no estándar', locationResponse);
+  return `Respuesta no estándar: ${JSON.stringify(locationResponse)}`;
+}

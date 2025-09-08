@@ -1,4 +1,5 @@
 import { EventTypes } from './event-types';
+import { StandardResponse } from './standard-responses';
 
 // === TIPOS DE GEOLOCALIZACIÓN ===
 export interface LocationCoordinates {
@@ -23,13 +24,15 @@ export interface LocationTrackingRequest {
   interval?: number;
 }
 
-export interface LocationResponse extends LocationCoordinates {
-  success: boolean;
-  error?: string;
-}
-
-export interface LocationUpdateResponse {
-  received: boolean;
+// Datos específicos para las respuestas
+export interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  altitude?: number;
+  speed?: number;
+  heading?: number;
+  timestamp: number;
 }
 
 // === INTERFACES PARA GEOLOCALIZACIÓN ===
@@ -37,7 +40,7 @@ export interface GeolocationOutgoingPayloads {
   [EventTypes.GET_LOCATION]: GetLocationRequest;
   [EventTypes.START_LOCATION_TRACKING]: LocationTrackingRequest;
   [EventTypes.STOP_LOCATION_TRACKING]: {};
-  [EventTypes.LOCATION_UPDATE]: LocationResponse;
+  [EventTypes.LOCATION_UPDATE]: StandardResponse<LocationData>;
 }
 
 export interface GeolocationIncomingPayloads {
@@ -47,13 +50,13 @@ export interface GeolocationIncomingPayloads {
 }
 
 export interface GeolocationIncomingResponses {
-  [EventTypes.GET_LOCATION]: LocationCoordinates;
-  [EventTypes.LOCATION_UPDATE]: LocationUpdateResponse;
+  [EventTypes.GET_LOCATION]: StandardResponse<LocationData>;
+  [EventTypes.LOCATION_UPDATE]: StandardResponse<{ received: boolean }>;
 }
 
 export interface GeolocationOutgoingResponses {
-  [EventTypes.GET_LOCATION]: LocationResponse;
-  [EventTypes.START_LOCATION_TRACKING]: { success: boolean; error?: string };
-  [EventTypes.STOP_LOCATION_TRACKING]: { success: boolean; error?: string };
-  [EventTypes.LOCATION_UPDATE]: LocationUpdateResponse;
+  [EventTypes.GET_LOCATION]: StandardResponse<LocationData>;
+  [EventTypes.START_LOCATION_TRACKING]: StandardResponse<null>;
+  [EventTypes.STOP_LOCATION_TRACKING]: StandardResponse<null>;
+  [EventTypes.LOCATION_UPDATE]: StandardResponse<{ received: boolean }>;
 }

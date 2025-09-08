@@ -1,4 +1,5 @@
 import { EventTypes } from './event-types';
+import { StandardResponse } from './standard-responses';
 
 // === TIPOS DE ALMACENAMIENTO ===
 export interface SetStorageRequest {
@@ -19,14 +20,11 @@ export interface ClearStorageRequest {
   // No requiere parámetros
 }
 
-export interface StorageSuccessResponse {
-  success: boolean;
-  error?: string;
-}
-
-export interface GetStorageResponse extends StorageSuccessResponse {
-  requestId: string;
+// Datos específicos para cada operación de storage
+export interface GetStorageData {
+  key: string;
   value: string | null;
+  requestId: string;
 }
 
 export interface SaveFileRequest {
@@ -53,8 +51,8 @@ export interface StorageIncomingResponses {
 }
 
 export interface StorageOutgoingResponses {
-  [EventTypes.SET_IN_LOCAL_STORAGE]: StorageSuccessResponse;
-  [EventTypes.GET_FROM_LOCAL_STORAGE]: GetStorageResponse;
-  [EventTypes.DELETE_FROM_LOCAL_STORAGE]: StorageSuccessResponse;
-  [EventTypes.CLEAR_LOCAL_STORAGE]: StorageSuccessResponse;
+  [EventTypes.SET_IN_LOCAL_STORAGE]: StandardResponse<null>;
+  [EventTypes.GET_FROM_LOCAL_STORAGE]: StandardResponse<GetStorageData>;
+  [EventTypes.DELETE_FROM_LOCAL_STORAGE]: StandardResponse<null>;
+  [EventTypes.CLEAR_LOCAL_STORAGE]: StandardResponse<null>;
 }

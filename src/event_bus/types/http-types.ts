@@ -1,4 +1,5 @@
 import { EventTypes } from './event-types';
+import { StandardResponse } from './standard-responses';
 
 // === TIPOS DE HTTP ===
 export interface HttpRequestEvent {
@@ -10,9 +11,11 @@ export interface HttpRequestEvent {
   responseType?: 'json' | 'text' | 'blob' | 'arraybuffer';
 }
 
-export interface HttpResponse {
+// Datos específicos para respuesta HTTP exitosa
+export interface HttpResponseData {
   status: number;
   data: any;
+  headers?: Record<string, string>;
 }
 
 // === INTERFACES PARA HTTP ===
@@ -29,5 +32,5 @@ export interface HttpIncomingResponses {
 }
 
 export interface HttpOutgoingResponses {
-  [EventTypes.HTTP_REQUEST]: HttpResponse;
+  [EventTypes.HTTP_REQUEST]: StandardResponse<HttpResponseData>;
 }
