@@ -12,14 +12,6 @@ const NativeCamera = () => {
 
   const isAvailable = device && hasPermission;
 
-  // 🐛 DEBUG: Agregar logs para verificar que las funciones existen
-  console.log('📷 NativeCamera render - Functions available:', {
-    takePhoto: typeof takePhoto,
-    goBack: typeof goBack,
-    hasPermission,
-    device: !!device,
-  });
-
   if (isAvailable)
     return (
       <View style={styles.container}>
@@ -32,7 +24,6 @@ const NativeCamera = () => {
           style={StyleSheet.absoluteFill}
         />
 
-        {/* 🔧 Asegurar que los botones estén por encima con zIndex alto */}
         <TouchableOpacity
           style={styles.backButton}
           onPress={goBack}
@@ -44,10 +35,7 @@ const NativeCamera = () => {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.captureButton}
-            onPress={() => {
-              console.log('📷 Capture button pressed');
-              takePhoto();
-            }}
+            onPress={takePhoto}
             activeOpacity={0.7}
           >
             <View style={styles.captureButtonInner} />

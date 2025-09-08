@@ -57,18 +57,13 @@ export const useVisionCamera = () => {
 
   const takePhoto = async () => {
     try {
-      console.log('📷 Iniciando captura de foto...');
-
       if (!camera.current) {
         const error = new Error('Camera reference not available');
-        console.error('📷 Error:', error.message);
         rejectPhoto(error);
         return;
       }
 
       const photo = await camera.current.takePhoto({ flash: 'off' });
-      console.log('📷 Foto capturada, procesando base64...');
-
       const base64String = await RNFS.readFile(photo.path, 'base64');
 
       const photoData: TakePhotoDirectResponse = {
@@ -79,25 +74,15 @@ export const useVisionCamera = () => {
         timestamp: Date.now(),
       };
 
-      console.log('📸 Foto procesada exitosamente:', {
-        width: photoData.width,
-        height: photoData.height,
-        base64Length: photoData.base64.length,
-        timestamp: photoData.timestamp,
-      });
-
       resolvePhoto(photoData);
     } catch (error) {
       console.error('📷 Error al tomar la foto:', error);
-
       Alert.alert('Error', 'No se pudo tomar la foto');
-
       rejectPhoto(error as Error);
     }
   };
 
   const goBack = () => {
-    console.log('📷 Usuario canceló la captura');
     rejectPhoto(new Error('User cancelled photo capture'));
   };
 
