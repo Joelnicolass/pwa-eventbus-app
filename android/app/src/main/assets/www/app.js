@@ -27,6 +27,8 @@ const elements = {
   deviceBtn: document.getElementById('device-btn'),
   locationBtn: document.getElementById('location-btn'),
   storageBtn: document.getElementById('storage-btn'),
+  // Agregar referencia al botón de cámara
+  cameraBtn: null, // Se creará dinámicamente
 
   // Mock controls
   simulateErrors: document.getElementById('simulate-errors'),
@@ -115,6 +117,9 @@ function setupEventListeners() {
   );
   elements.storageBtn.addEventListener('click', () => testStorageEvent());
 
+  // Crear y agregar botón de cámara dinámicamente
+  createCameraButton();
+
   // Mock controls
   elements.simulateErrors.addEventListener('change', handleErrorSimulation);
   elements.statsBtn.addEventListener('click', showStats);
@@ -123,45 +128,167 @@ function setupEventListeners() {
   elements.clearBtn.addEventListener('click', clearConsole);
 }
 
-function handleModeChange() {
-  const newMode = elements.modeSelector.value;
-  log(`🔄 Cambiando a modo: ${newMode}`, 'info');
+// ========================================
+// FUNCIONALIDAD DE CÁMARA SIMPLIFICADA
+// ========================================
 
+/**
+ * Crea el botón de cámara y lo agrega al DOM
+ */
+function createCameraButton() {
+  const buttonGroup = document.querySelector('.button-group');
+
+  // Crear botón de cámara
+  const cameraBtn = document.createElement('button');
+  cameraBtn.id = 'camera-btn';
+  cameraBtn.className = 'btn secondary';
+  cameraBtn.innerHTML = '📷 Tomar Foto';
+
+  // Agregar event listener
+  cameraBtn.addEventListener('click', () => testCameraCapture());
+
+  // Insertar después del botón de location
+  const locationBtn = elements.locationBtn;
+  locationBtn.parentNode.insertBefore(cameraBtn, locationBtn.nextSibling);
+
+  // Guardar referencia
+  elements.cameraBtn = cameraBtn;
+
+  log('📷 Botón de cámara agregado al DOM', 'info');
+}
+
+/**
+ * 📷 Función simplificada para captura de fotos
+ *
+ * Implementa el flujo deseado:
+ * PWA emite TAKE_PHOTO -> React Native activa cámara -> retorna base64, width, height
+ *
+ * Usa el patrón Promise/async-await para un flujo limpio y directo
+ * ACTUALIZADO: Maneja la convención estándar de respuesta de React Native
+ */
+async function testCameraCapture() {
   try {
-    if (newMode === 'auto') {
-      eventBus = window.PWAEventBusFactory.create();
-    } else if (newMode === 'mock') {
-      eventBus = new window.PWAEventBusMock();
-    } else if (newMode === 'real') {
-      eventBus = new window.PWAEventBus();
+    log('📷 Iniciando captura de foto...', 'info');
+
+    // Deshabilitar botón temporalmente para evitar múltiples clicks
+    if (elements.cameraBtn) {
+      elements.cameraBtn.disabled = true;
+      elements.cameraBtn.innerHTML = '📷 Capturando...';
     }
 
-    const actualMode =
-      eventBus.getStats && eventBus.getStats().mockMode ? 'mock' : 'real';
-    updateModeDisplay(actualMode);
-    setupSubscriptions();
+    // 🚀 FLUJO SIMPLIFICADO: Un solo evento que retorna todo lo necesario
+    const response = await eventBus.emit(window.EventTypes.TAKE_PHOTO, {
+      quality: 0.8,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      cameraType: 'back',
+      timestamp: Date.now(),
+    });
 
-    log(`✅ Modo cambiado a ${actualMode.toUpperCase()}`, 'success');
+    updateMessageCounter();
+
+    // ✅ USAR CONVENCIÓN ESTÁNDAR: La respuesta viene en formato StandardResponse
+    // response = { success: true, eventType: "TAKE_PHOTO", data: {...}, timestamp: ... }
+
+    if (!response.success) {
+      throw new Error(response.message || 'Error en la captura de foto');
+    }
+
+    // 🎯 LOS DATOS DE LA FOTO ESTÁN EN response.data
+    const photoData = response.data;
+
+    log('📷 ¡Foto capturada exitosamente!', 'success');
+    log('📷 Respuesta completa recibida:', 'info');
+    logJson(response);
+
+    // Mostrar la información de la foto desde response.data
+    const photoInfo = {
+      success: photoData.success || false,
+      width: photoData.width || 'No disponible',
+      height: photoData.height || 'No disponible',
+      base64Length: photoData.base64 ? photoData.base64.length : 0,
+      base64Preview: photoData.base64
+        ? photoData.base64.substring(0, 50) + '...'
+        : 'No disponible',
+      timestamp: photoData.timestamp || 'No disponible',
+      eventTimestamp: response.timestamp,
+    };
+
+    log('📷 Datos extraídos de la foto:', 'info');
+    logJson(photoInfo);
+
+    // 🎯 AQUÍ TIENES ACCESO DIRECTO AL PAYLOAD COMO QUERÍAS:
+    if (photoData.base64) {
+      log(
+        `📸 Base64 recibido (${photoData.base64.length} caracteres)`,
+        'success',
+      );
+      log(`📐 Dimensiones: ${photoData.width}x${photoData.height}`, 'success');
+
+      // Ejemplo de cómo usar los datos (como lo solicitas en el objetivo)
+      console.log('📷 RESPUESTA COMPLETA:', response);
+      console.log('📷 DATOS DE LA FOTO:', photoData);
+      console.log('📷 BASE64:', photoData.base64);
+      console.log('📷 WIDTH:', photoData.width);
+      console.log('📷 HEIGHT:', photoData.height);
+      console.log('📷 SUCCESS:', photoData.success);
+      console.log('📷 TIMESTAMP:', photoData.timestamp);
+
+      // Aquí podrías hacer lo que necesites con la foto:
+      // - Mostrarla en un elemento <img>
+      // - Enviarla a un servidor
+      // - Procesar la imagen
+      // - etc.
+
+      // Ejemplo: Mostrar la foto en la consola como imagen
+      try {
+        const img = document.createElement('img');
+        img.src = photoData.base64;
+        img.style.maxWidth = '200px';
+        img.style.maxHeight = '150px';
+        img.style.border = '2px solid #007bff';
+        img.style.borderRadius = '8px';
+        img.style.margin = '10px 0';
+
+        const imageEntry = document.createElement('div');
+        imageEntry.className = 'json-entry';
+        imageEntry.innerHTML =
+          '<p><strong>📸 Preview de la foto capturada:</strong></p>';
+        imageEntry.appendChild(img);
+
+        elements.console.appendChild(imageEntry);
+        scrollConsole();
+
+        log('📸 Preview de la imagen agregado a la consola', 'success');
+      } catch (imgError) {
+        log('⚠️ No se pudo mostrar preview de la imagen', 'warning');
+      }
+    } else {
+      log('⚠️ No se recibió base64 en response.data', 'warning');
+    }
   } catch (error) {
-    log('❌ Error cambiando modo: ' + error.message, 'error');
-  }
-}
+    log(`❌ Error capturando foto: ${error.message}`, 'error');
+    console.error('📷 Error completo:', error);
 
-function handleErrorSimulation() {
-  if (eventBus.setErrorSimulation) {
-    const enabled = elements.simulateErrors.checked;
-    eventBus.setErrorSimulation(enabled, 0.1);
-    log(`🎭 Simulación de errores ${enabled ? 'ON' : 'OFF'}`, 'info');
-  }
-}
-
-function showStats() {
-  if (eventBus.getStats) {
-    const stats = eventBus.getStats();
-    log('📊 ESTADÍSTICAS EventBus:', 'info');
-    logJson(stats);
-  } else {
-    log('📊 Stats no disponibles (modo real)', 'warning');
+    // Manejar errores específicos
+    if (error.message.includes('timeout')) {
+      log('⏱️ Timeout - La cámara tardó demasiado en responder', 'error');
+    } else if (error.message.includes('permission')) {
+      log('🔐 Error de permisos - Verifica los permisos de cámara', 'error');
+    } else if (error.message.includes('not available')) {
+      log('📵 Cámara no disponible en este dispositivo', 'error');
+    } else if (error.message.includes('Camera is already active')) {
+      log(
+        '📷 La cámara ya está activa - intenta de nuevo en un momento',
+        'error',
+      );
+    }
+  } finally {
+    // Rehabilitar botón
+    if (elements.cameraBtn) {
+      elements.cameraBtn.disabled = false;
+      elements.cameraBtn.innerHTML = '📷 Tomar Foto';
+    }
   }
 }
 
@@ -376,4 +503,46 @@ function updateModeDisplay(mode) {
 function updateMessageCounter() {
   messageCounter++;
   elements.messagesCount.textContent = messageCounter;
+}
+
+function handleModeChange() {
+  const newMode = elements.modeSelector.value;
+  log(`🔄 Cambiando a modo: ${newMode}`, 'info');
+
+  try {
+    if (newMode === 'auto') {
+      eventBus = window.PWAEventBusFactory.create();
+    } else if (newMode === 'mock') {
+      eventBus = new window.PWAEventBusMock();
+    } else if (newMode === 'real') {
+      eventBus = new window.PWAEventBus();
+    }
+
+    const actualMode =
+      eventBus.getStats && eventBus.getStats().mockMode ? 'mock' : 'real';
+    updateModeDisplay(actualMode);
+    setupSubscriptions();
+
+    log(`✅ Modo cambiado a ${actualMode.toUpperCase()}`, 'success');
+  } catch (error) {
+    log('❌ Error cambiando modo: ' + error.message, 'error');
+  }
+}
+
+function handleErrorSimulation() {
+  if (eventBus.setErrorSimulation) {
+    const enabled = elements.simulateErrors.checked;
+    eventBus.setErrorSimulation(enabled, 0.1);
+    log(`🎭 Simulación de errores ${enabled ? 'ON' : 'OFF'}`, 'info');
+  }
+}
+
+function showStats() {
+  if (eventBus.getStats) {
+    const stats = eventBus.getStats();
+    log('📊 ESTADÍSTICAS EventBus:', 'info');
+    logJson(stats);
+  } else {
+    log('📊 Stats no disponibles (modo real)', 'warning');
+  }
 }

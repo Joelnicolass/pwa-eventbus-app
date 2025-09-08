@@ -8,18 +8,15 @@ import {
 } from 'react-native-vision-camera';
 import * as RNFS from '@dr.pogodin/react-native-fs';
 import { useNativeCameraContext } from '../../providers/native_camera_provider';
-import { useGlobalEventBus } from '../../providers/event_bus_provider';
-import { EventTypes } from '../../types';
+import { TakePhotoDirectResponse } from '../../types';
 
 export const useVisionCamera = () => {
-  const eventBus = useGlobalEventBus();
-
   const camera = useRef<Camera>(null);
   const device = useCameraDevice('back');
   const { hasPermission, requestPermission } = useCameraPermission();
   const [qrCodeDetected, setQrCodeDetected] = useState<boolean>(false);
 
-  const { setIsActive } = useNativeCameraContext();
+  const { setIsActive, resolvePhoto, rejectPhoto } = useNativeCameraContext();
 
   useEffect(() => {
     if (!hasPermission) {
@@ -60,25 +57,49 @@ export const useVisionCamera = () => {
 
   const takePhoto = async () => {
     try {
-      if (!eventBus) return;
-      if (camera.current) {
-        const photo = await camera.current.takePhoto({ flash: 'off' });
+      console.log('📷 Iniciando captura de foto...');
 
-        const base64String = await RNFS.readFile(photo.path, 'base64');
-
-        eventBus.emit(EventTypes.CAMERA_PHOTO_BASE64_PROCESS, {
-          base64: `data:image/jpeg;base64,${base64String}`,
-          width: photo.width,
-          height: photo.height,
-        });
+      if (!camera.current) {
+        const error = new Error('Camera reference not available');
+        console.error('📷 Error:', error.message);
+        rejectPhoto(error);
+        return;
       }
+
+      const photo = await camera.current.takePhoto({ flash: 'off' });
+      console.log('📷 Foto capturada, procesando base64...');
+
+      const base64String = await RNFS.readFile(photo.path, 'base64');
+
+      const photoData: TakePhotoDirectResponse = {
+        base64: `data:image/jpeg;base64,${base64String}`,
+        width: photo.width,
+        height: photo.height,
+        success: true,
+        timestamp: Date.now(),
+      };
+
+      console.log('📸 Foto procesada exitosamente:', {
+        width: photoData.width,
+        height: photoData.height,
+        base64Length: photoData.base64.length,
+        timestamp: photoData.timestamp,
+      });
+
+      resolvePhoto(photoData);
     } catch (error) {
-      console.error('Error al tomar la foto:', error);
+      console.error('📷 Error al tomar la foto:', error);
+
       Alert.alert('Error', 'No se pudo tomar la foto');
+
+      rejectPhoto(error as Error);
     }
   };
 
-  const goBack = () => setIsActive(false);
+  const goBack = () => {
+    console.log('📷 Usuario canceló la captura');
+    rejectPhoto(new Error('User cancelled photo capture'));
+  };
 
   return {
     camera,

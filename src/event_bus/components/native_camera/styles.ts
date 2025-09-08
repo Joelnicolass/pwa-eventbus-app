@@ -10,6 +10,7 @@ export const nativeCameraStyles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+    zIndex: 1000,
   },
   captureButton: {
     width: 80,

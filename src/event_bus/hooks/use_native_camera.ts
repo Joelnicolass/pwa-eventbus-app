@@ -8,7 +8,8 @@ import {
   ErrorCode,
   StandardResponse,
   PhotoProcessedData,
-  CameraActivatedData,
+  TakePhotoDirectResponse,
+  TakePhotoRequest,
 } from '../types';
 import { useNativeCameraContext } from '../providers/native_camera_provider';
 
@@ -17,6 +18,7 @@ type CameraPhotoBase64Request =
 
 /**
  * Executes camera photo base64 processing and returns a standardized response.
+ * MANTENER para compatibilidad hacia atrás
  */
 const executeCameraPhotoBase64Process = async ({
   base64,
@@ -29,9 +31,6 @@ const executeCameraPhotoBase64Process = async ({
       height,
       base64Length: base64?.length || 0,
     });
-
-    // Aquí podrías agregar lógica adicional de procesamiento de la foto
-    // Por ejemplo: validación, compresión, filtros, etc.
 
     if (!base64 || base64.length === 0) {
       return createErrorFromException(
@@ -58,20 +57,71 @@ const executeCameraPhotoBase64Process = async ({
 };
 
 /**
- * Executes take photo operation and returns a standardized response.
+ * 🚀 NUEVO: Función refactorizada para TAKE_PHOTO directo
+ *
+ * Implementa el flujo simplificado:
+ * 1. PWA emite TAKE_PHOTO
+ * 2. Se activa la cámara
+ * 3. Usuario toma foto
+ * 4. Se retorna directamente base64, width, height
  */
-const executeTakePhoto = async (): Promise<
-  StandardResponse<CameraActivatedData>
-> => {
+const executeTakePhotoDirectly = async (
+  payload: TakePhotoRequest,
+  cameraContext: {
+    isActive: boolean;
+    setIsActive: (active: boolean) => void;
+    setPendingPhotoPromise: (
+      promise: {
+        resolve: (value: TakePhotoDirectResponse) => void;
+        reject: (error: Error) => void;
+      } | null,
+    ) => void;
+  },
+): Promise<StandardResponse<TakePhotoDirectResponse>> => {
   try {
-    // Activar la cámara (esto se maneja en el contexto)
-    const data: CameraActivatedData = {
-      activated: true,
-    };
+    console.log('📷 Iniciando captura directa de foto con payload:', payload);
 
-    return createSuccessResponse(EventTypes.TAKE_PHOTO, data);
+    // Verificar si la cámara ya está activa
+    if (cameraContext.isActive) {
+      return createErrorFromException(
+        EventTypes.TAKE_PHOTO,
+        new Error('Camera is already active'),
+        ErrorCode.CAMERA_NOT_AVAILABLE,
+      );
+    }
+
+    // 🎯 CREAR PROMISE PARA EL FLUJO DIRECTO - USANDO CONVENCIÓN ESTÁNDAR
+    return new Promise((resolve, reject) => {
+      // Configurar el promise pendiente en el contexto
+      cameraContext.setPendingPhotoPromise({
+        resolve: (photoData: TakePhotoDirectResponse) => {
+          console.log('📸 Foto capturada exitosamente:', {
+            width: photoData.width,
+            height: photoData.height,
+            base64Length: photoData.base64.length,
+          });
+          // ✅ USAR CONVENCIÓN ESTÁNDAR - createSuccessResponse
+          resolve(createSuccessResponse(EventTypes.TAKE_PHOTO, photoData));
+        },
+        reject: (error: Error) => {
+          console.error('📸 Error capturando foto:', error);
+          // ✅ USAR CONVENCIÓN ESTÁNDAR - createErrorFromException
+          reject(
+            createErrorFromException(
+              EventTypes.TAKE_PHOTO,
+              error,
+              ErrorCode.PHOTO_CAPTURE_FAILED,
+            ),
+          );
+        },
+      });
+
+      // Activar la cámara - esto hará que se muestre la UI de cámara
+      cameraContext.setIsActive(true);
+      console.log('📷 Cámara activada - esperando captura del usuario');
+    });
   } catch (error) {
-    console.error('Error activando cámara:', error);
+    console.error('📷 Error en executeTakePhotoDirectly:', error);
     return createErrorFromException(
       EventTypes.TAKE_PHOTO,
       error,
@@ -81,29 +131,23 @@ const executeTakePhoto = async (): Promise<
 };
 
 export const useNativeCamera = (eventBus: EventBus | null) => {
-  const { isActive, setIsActive } = useNativeCameraContext();
+  const cameraContext = useNativeCameraContext();
 
   useEffect(() => {
     if (!eventBus) return;
 
+    // MANTENER: Suscripción para compatibilidad hacia atrás
     const unsubscribeProcess = eventBus.subscribe(
       EventTypes.CAMERA_PHOTO_BASE64_PROCESS,
       executeCameraPhotoBase64Process,
     );
 
+    // 🚀 REFACTORIZADO: Nueva suscripción para TAKE_PHOTO directo
     const unsubscribeTakePhoto = eventBus.subscribe(
       EventTypes.TAKE_PHOTO,
-      async () => {
-        if (isActive) {
-          return createErrorFromException(
-            EventTypes.TAKE_PHOTO,
-            new Error('Camera is already active'),
-            ErrorCode.CAMERA_NOT_AVAILABLE,
-          );
-        }
-
-        setIsActive(true);
-        return executeTakePhoto();
+      async (payload: TakePhotoRequest) => {
+        console.log('📷 TAKE_PHOTO recibido con payload:', payload);
+        return await executeTakePhotoDirectly(payload, cameraContext);
       },
     );
 
@@ -111,5 +155,5 @@ export const useNativeCamera = (eventBus: EventBus | null) => {
       unsubscribeProcess();
       unsubscribeTakePhoto();
     };
-  }, [eventBus, isActive, setIsActive]);
+  }, [eventBus, cameraContext]);
 };

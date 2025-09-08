@@ -32,11 +32,11 @@ export default function HomeScreen() {
 
   if (!url || !isServerReady) return <Loader fullscreen />;
 
-  if (isActiveCam) return <NativeCamera />;
-
   return (
     <SafeAreaView style={styles.container}>
-      <NativeWebView ref={webViewRef} url={url} />
+      {isActiveCam && <NativeCamera />}
+
+      <NativeWebView ref={webViewRef} url={url} hide={isActiveCam} />
     </SafeAreaView>
   );
 }

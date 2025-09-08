@@ -14,6 +14,7 @@ const USER_AGENT =
 
 interface NativeWebViewProps {
   url: string;
+  hide?: boolean;
   onLoadEnd?: () => void;
   onLoadStart?: () => void;
   onNavigationStateChange?: (navState: any) => void;
@@ -26,7 +27,10 @@ export interface NativeWebViewRef {
 }
 
 const NativeWebView = forwardRef<NativeWebViewRef, NativeWebViewProps>(
-  ({ url, onLoadEnd, onLoadStart, onNavigationStateChange }, ref) => {
+  (
+    { url, onLoadEnd, onLoadStart, onNavigationStateChange, hide = false },
+    ref,
+  ) => {
     const styles = nativeWebViewStyles;
 
     const eventBus = useGlobalEventBus();
@@ -61,7 +65,7 @@ const NativeWebView = forwardRef<NativeWebViewRef, NativeWebViewProps>(
       <WebView
         ref={webViewRef}
         source={{ uri: url }}
-        style={styles.webView}
+        style={hide ? styles.hide : styles.webView}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         startInLoadingState={true}

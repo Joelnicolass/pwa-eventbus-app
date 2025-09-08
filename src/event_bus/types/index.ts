@@ -46,6 +46,7 @@ export type {
   CameraPhotoBase64Data,
   PhotoProcessedData,
   CameraActivatedData,
+  TakePhotoDirectResponse,
 } from './camera-types';
 
 export type {

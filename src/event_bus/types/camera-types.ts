@@ -30,13 +30,20 @@ export interface PhotoProcessedData {
   processed: boolean;
 }
 
+// NUEVO: Interface simplificada para respuesta directa de TAKE_PHOTO
+export interface TakePhotoDirectResponse extends CameraPhotoBase64Data {
+  success: boolean;
+  timestamp: number;
+}
+
 export interface CameraActivatedData {
   activated: boolean;
 }
 
-// === INTERFACES PARA CÁMARA ===
+// === INTERFACES PARA CÁMARA SIMPLIFICADAS ===
 export interface CameraOutgoingPayloads {
   [EventTypes.TAKE_PHOTO]: TakePhotoRequest;
+  // Mantenemos los eventos de procesamiento para compatibilidad hacia atrás
   [EventTypes.CAMERA_PHOTO_BASE64_PROCESS]: CameraPhotoBase64Data;
   [EventTypes.CAMERA_PHOTO_BASE64_READY]: CameraPhotoBase64Data;
 }
@@ -48,13 +55,15 @@ export interface CameraIncomingPayloads {
 }
 
 export interface CameraIncomingResponses {
-  [EventTypes.TAKE_PHOTO]: StandardResponse<CameraActivatedData>;
+  // REFACTORIZADO: TAKE_PHOTO ahora retorna directamente los datos de la foto
+  [EventTypes.TAKE_PHOTO]: StandardResponse<TakePhotoDirectResponse>;
   [EventTypes.CAMERA_PHOTO_BASE64_PROCESS]: StandardResponse<PhotoProcessedData>;
   [EventTypes.CAMERA_PHOTO_BASE64_READY]: StandardResponse<CameraPhotoBase64Data>;
 }
 
 export interface CameraOutgoingResponses {
-  [EventTypes.TAKE_PHOTO]: StandardResponse<CameraActivatedData>;
+  // REFACTORIZADO: TAKE_PHOTO ahora retorna directamente los datos de la foto
+  [EventTypes.TAKE_PHOTO]: StandardResponse<TakePhotoDirectResponse>;
   [EventTypes.CAMERA_PHOTO_BASE64_PROCESS]: StandardResponse<PhotoProcessedData>;
   [EventTypes.CAMERA_PHOTO_BASE64_READY]: StandardResponse<CameraPhotoBase64Data>;
 }
