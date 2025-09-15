@@ -34,6 +34,8 @@ import {
   CustomIncomingResponses,
   CustomOutgoingResponses,
 } from './custom-types';
+import { EventTypes } from './event-types';
+import { StandardResponse } from './standard-responses';
 
 /**
  * Tipos de payload para eventos que EMITES (lo que envías cuando haces emit())
@@ -44,7 +46,9 @@ export interface OutgoingEventPayloads
     GeolocationOutgoingPayloads,
     StorageOutgoingPayloads,
     HttpOutgoingPayloads,
-    CustomOutgoingPayloads {}
+    CustomOutgoingPayloads {
+  [EventTypes.SHOW_NAME]: any;
+}
 
 /**
  * Tipos de respuesta que RECIBES después de emitir un evento (lo que esperas como respuesta)
@@ -55,7 +59,9 @@ export interface IncomingEventResponses
     GeolocationIncomingResponses,
     StorageIncomingResponses,
     HttpIncomingResponses,
-    CustomIncomingResponses {}
+    CustomIncomingResponses {
+  [EventTypes.SHOW_NAME]: any;
+}
 
 /**
  * Tipos de payload para eventos que RECIBES (lo que recibes cuando alguien emite hacia ti)
@@ -66,7 +72,9 @@ export interface IncomingEventPayloads
     GeolocationIncomingPayloads,
     StorageIncomingPayloads,
     HttpIncomingPayloads,
-    CustomIncomingPayloads {}
+    CustomIncomingPayloads {
+  [EventTypes.SHOW_NAME]: { data: { name: string } };
+}
 
 /**
  * Tipos de respuesta que ENVÍAS cuando respondes a un evento recibido (lo que debes retornar)
@@ -77,4 +85,6 @@ export interface OutgoingEventResponses
     GeolocationOutgoingResponses,
     StorageOutgoingResponses,
     HttpOutgoingResponses,
-    CustomOutgoingResponses {}
+    CustomOutgoingResponses {
+  [EventTypes.SHOW_NAME]: StandardResponse<{ message: string }>;
+}

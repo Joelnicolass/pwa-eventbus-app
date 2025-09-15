@@ -27,6 +27,9 @@ const elements = {
   deviceBtn: document.getElementById('device-btn'),
   locationBtn: document.getElementById('location-btn'),
   storageBtn: document.getElementById('storage-btn'),
+
+  newEventBtn: document.getElementById('new-event-btn'),
+
   // Agregar referencia al botón de cámara
   cameraBtn: null, // Se creará dinámicamente
 
@@ -116,6 +119,24 @@ function setupEventListeners() {
     testEvent('GET_LOCATION'),
   );
   elements.storageBtn.addEventListener('click', () => testStorageEvent());
+
+  elements.newEventBtn.addEventListener('click', async () => {
+    const eventName = 'SHOW_NAME';
+
+    const payload = {
+      timestamp: Date.now(),
+      eventType: eventName,
+      data: { name: 'Nico' },
+    };
+
+    log(`🧪 Evento ${eventName} enviado`, 'info');
+    const response = await eventBus.emit(eventName, payload);
+
+    log(`✅ Respuesta de ${eventName}:`, 'success');
+    logJson(response);
+
+    updateMessageCounter();
+  });
 
   // Crear y agregar botón de cámara dinámicamente
   createCameraButton();
@@ -299,11 +320,11 @@ async function testCameraCapture() {
 function setupSubscriptions() {
   subscribedEvents = 0;
 
-  // Native Ready
+  // Native Ready - CORREGIDO: Hacer suscripción en lugar de emit
   eventBus.subscribe(window.EventTypes.NATIVE_READY, async payload => {
-    log('📲 NATIVE_READY recibido:', 'success');
+    log('🤖 NATIVE_READY recibido:', 'success');
     logJson(payload);
-    return { pwa_status: 'ready', timestamp: Date.now() };
+    return { pwaReady: true, timestamp: Date.now() };
   });
 
   // Location Updates

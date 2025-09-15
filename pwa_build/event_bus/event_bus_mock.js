@@ -231,6 +231,12 @@ class PWAEventBusMock {
       version: '1.0.0',
     });
 
+    this.mockResponses.set('SHOW_NAME', {
+      data: {
+        message: 'Gacieeela',
+      },
+    });
+
     this.log('✅ Respuestas mock predefinidas configuradas');
   }
 

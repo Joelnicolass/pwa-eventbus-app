@@ -165,4 +165,5 @@ export enum EventTypes {
   PWA_CUSTOM_EVENT = 'pwa_custom_event',
 
   TEST = 'test',
+  SHOW_NAME = 'SHOW_NAME',
 }
